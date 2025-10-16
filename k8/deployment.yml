@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toletech-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: toletech-backend
+  template:
+    metadata:
+      labels:
+        app: toletech-backend
+    spec:
+      containers:
+        - name: toletech-backend
+          image: yourdockerhub/toletech-backend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: toletech-secrets
+                  key: MONGO_URI
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: toletech-backend-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: toletech-backend
+  ports:
+    - port: 80
+      targetPort: 3000
