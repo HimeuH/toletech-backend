@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    image: toletech/backend:local
+    container_name: toletech-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+    depends_on: []
+    # If you want a local Mongo service instead of Atlas, uncomment and use the mongo service below
+    # depends_on:
+    #   - mongo
+
+  # Optional local MongoDB for testing (comment out if you use Atlas)
+  # mongo:
+  #   image: mongo:6
+  #   container_name: toletech-mongo
+  #   restart: unless-stopped
+  #   environment:
+  #     MONGO_INITDB_DATABASE: toletech
+  #   volumes:
+  #     - mongo_data:/data/db
+  #   ports:
+  #     - "27017:27017"
+
+volumes:
+  mongo_data:
