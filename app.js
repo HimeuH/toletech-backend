@@ -36,10 +36,12 @@ app.use(errorMiddleware);
 const userRoutes = require('./routes/user.routes');
 const reservationRoutes = require('./routes/reservation.routes');
 const storageRoutes = require('./routes/storage.routes');
+const billingRoutes = require('./routes/billing.routes');
 
 
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/reservation', reservationRoutes);
 app.use('/api/v1/storage', storageRoutes);
+app.use('/api/v1/billing', billingRoutes);
 
 module.exports = app
