@@ -7,6 +7,7 @@ const storageSchema = new mongoose.Schema({
   capacityUnitEnum: ['M2', 'HA', 'L', 'M3'],
   availableFrom: Date,
   availableTo: Date,
+  costPerKgPerDay: Number,
   productType: String,
   isAvailable: { type: Boolean, default: true }
 }, { timestamps: true });
