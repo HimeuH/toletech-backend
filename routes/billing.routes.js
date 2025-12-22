@@ -7,11 +7,11 @@ const router = express.Router();
 
 // Générer une facture
 // router.post('/:reservationId/generate', isAuthenticatedUser, createBilling);
-router.post('/:reservationId/generate', createBilling);
-router.put('/:billingId/:status', updateBillingStatus )
-router.get('/:billingId', getBillingById);
-router.get('/:status', getBillingsByStatus);
-router.get('/', getAllBillings);
+// router.post('/reservationId/generate', createBilling);
+// router.put('/billingId/:status', updateBillingStatus )
+// router.get('/billingId', getBillingById);
+// router.get('/status', getBillingsByStatus);
+// router.get('/', getAllBillings);
 
 
 module.exports = router;

@@ -1,16 +1,37 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
-  phone: String,
+const User = sequelize.define('User', {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: { isEmail: true }
+  },
+
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+
+  phone: DataTypes.STRING,
+
   role: {
-    type: String,
-    enum: ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT'],
-    default: 'AGRICULTEUR'
+    type: DataTypes.ENUM(
+      'AGRICULTEUR',
+      'PROPRIETAIRE',
+      'TRANSFORMATEUR',
+      'AGENT'
+    ),
+    defaultValue: 'AGRICULTEUR'
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
 
-// module.exports = mongoose.models.User || mongoose.model('User', userSchema);
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;
