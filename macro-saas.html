@@ -1,0 +1,3805 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Plateforme SaaS de Géolocalisation en Temps Réel</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background-color: #0f172a;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 80px;
+            position: relative;
+            z-index: 2;
+        }
+        .bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.05;
+            z-index: 1;
+        }
+        .bg-pattern::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border: 2px solid #2563eb;
+            border-radius: 50%;
+            top: -200px;
+            right: -200px;
+        }
+        .bg-pattern::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border: 2px solid #10b981;
+            border-radius: 50%;
+            bottom: -150px;
+            left: -150px;
+        }
+        .title-main {
+            font-family: 'Poppins', sans-serif;
+            font-size: 64px;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+        .title-highlight {
+            color: #2563eb;
+        }
+        .subtitle {
+            font-size: 28px;
+            font-weight: 400;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 48px;
+            letter-spacing: 0.3px;
+        }
+        .key-features {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 60px;
+        }
+        .feature-badge {
+            background-color: rgba(37, 99, 235, 0.15);
+            border: 1px solid #2563eb;
+            padding: 12px 24px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .feature-badge i {
+            color: #2563eb;
+            font-size: 18px;
+        }
+        .feature-badge p {
+            color: #e2e8f0;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .footer-info {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 80px;
+            z-index: 2;
+        }
+        .date-info p {
+            color: #64748b;
+            font-size: 18px;
+            margin: 0;
+        }
+        .company-info p {
+            color: #64748b;
+            font-size: 18px;
+            margin: 0;
+        }
+        .accent-line {
+            width: 120px;
+            height: 4px;
+            background-color: #10b981;
+            margin: 0 auto 32px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+<div class="slide-container">
+<div class="bg-pattern"></div>
+<div class="main-content">
+<div class="accent-line"></div>
+<h1 class="title-main">
+<p>Plateforme <span class="title-highlight">SaaS</span></p>
+<p>de Géolocalisation en Temps Réel</p>
+</h1>
+<div class="subtitle">
+<p>Architecture microservices · Multi-tenant · Temps réel</p>
+</div>
+<div class="key-features">
+<div class="feature-badge">
+<i class="fas fa-layer-group"></i>
+<p>Scalable</p>
+</div>
+<div class="feature-badge">
+<i class="fas fa-shield-alt"></i>
+<p>Sécurisé</p>
+</div>
+<div class="feature-badge">
+<i class="fas fa-bolt"></i>
+<p>Event-Driven</p>
+</div>
+<div class="feature-badge">
+<i class="fab fa-kubernetes"></i>
+<p>Kubernetes</p>
+</div>
+</div>
+</div>
+<div class="footer-info">
+<div class="company-info">
+<p><i class="fas fa-building" style="color: #2563eb; margin-right: 8px;"></i> Présentation Technique</p>
+</div>
+<div class="date-info">
+<p><i class="far fa-calendar-alt" style="color: #2563eb; margin-right: 8px;"></i> Décembre 2025</p>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Architecture Macro - Cluster Kubernetes</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.diagram-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.layer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.layer-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 4px 0;
+}
+.components-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.component-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 140px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.component-box:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.component-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.component-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.component-box.warning {
+    border-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+.component-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+.component-icon.primary {
+    color: #2563eb;
+}
+.component-icon.success {
+    color: #10b981;
+}
+.component-icon.warning {
+    color: #f59e0b;
+}
+.component-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.component-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 4px 0 0 0;
+}
+.namespace-container {
+    border: 2px dashed #475569;
+    border-radius: 16px;
+    padding: 20px;
+    background-color: rgba(15, 23, 42, 0.5);
+}
+.namespace-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.2);
+    padding: 4px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+.arrow-down {
+    text-align: center;
+    color: #475569;
+    font-size: 20px;
+    margin: 4px 0;
+}
+.key-points {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Architecture Macro – Cluster Kubernetes</p></h1>
+<div class="subtitle"><p>Vue d'ensemble de l'infrastructure microservices</p></div>
+</div>
+<div class="content">
+<div class="diagram-container">
+<!-- Ingress Layer -->
+<div class="layer">
+<div class="layer-title"><p>INGRESS LAYER</p></div>
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-network-wired"></i></div>
+<div class="component-name"><p>Ingress Controller</p></div>
+<div class="component-desc"><p>Nginx</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- API Gateway -->
+<div class="layer">
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-gateway"></i></div>
+<div class="component-name"><p>API Gateway</p></div>
+<div class="component-desc"><p>HTTP / WebSocket</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Namespace staas -->
+<div class="namespace-container">
+<div class="namespace-label"><p><i class="fab fa-kubernetes"></i> Namespace: staas</p></div>
+<div class="components-row">
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-shield-alt"></i></div>
+<div class="component-name"><p>Auth Service</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-location-arrow"></i></div>
+<div class="component-name"><p>Tracking</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-draw-polygon"></i></div>
+<div class="component-name"><p>Geofencing</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>Historisation</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-bell"></i></div>
+<div class="component-name"><p>Notification</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-credit-card"></i></div>
+<div class="component-name"><p>Billing/Packs</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Data Layer -->
+<div class="layer">
+<div class="layer-title"><p>DATA LAYER &amp; INTEGRATIONS</p></div>
+<div class="components-row">
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>MongoDB</p></div>
+<div class="component-desc"><p>Users, Tenants, Menus</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-search"></i></div>
+<div class="component-name"><p>Elasticsearch</p></div>
+<div class="component-desc"><p>Geoloc &amp; Historic</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-stream"></i></div>
+<div class="component-name"><p>Kafka</p></div>
+<div class="component-desc"><p>Events &amp; Positions</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-bolt"></i></div>
+<div class="component-name"><p>Redis</p></div>
+<div class="component-desc"><p>Cache</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-chart-line"></i></div>
+<div class="component-name"><p>Time-series DB</p></div>
+<div class="component-desc"><p>Positions</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-envelope"></i></div>
+<div class="component-name"><p>SMTP/SMS</p></div>
+<div class="component-desc"><p>Provider</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Haute disponibilité avec HPA</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Architecture event-driven (Kafka)</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Scalabilité horizontale</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Observabilité complète</p></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Modèle de Données - DTOs</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.diagram-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.dto-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.dto-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 200px;
+    max-width: 280px;
+    transition: all 0.3s ease;
+}
+.dto-box:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.dto-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.dto-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.dto-box.warning {
+    border-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+.dto-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #475569;
+}
+.dto-icon {
+    font-size: 18px;
+    color: #2563eb;
+}
+.dto-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin: 0;
+}
+.dto-attributes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.dto-attr {
+    font-size: 12px;
+    color: #cbd5e1;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.attr-icon {
+    color: #64748b;
+    font-size: 10px;
+    margin-top: 2px;
+}
+.attr-name {
+    font-weight: 600;
+    color: #e2e8f0;
+}
+.attr-type {
+    color: #94a3b8;
+}
+.relationship-note {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #475569;
+    font-size: 11px;
+    color: #10b981;
+    font-style: italic;
+}
+.layer-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 8px 0 8px 0;
+}
+.arrow-indicator {
+    text-align: center;
+    color: #475569;
+    font-size: 16px;
+    margin: 4px 0;
+}
+.key-points {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Modèle de Données – DTOs &amp; Relations</p></h1>
+<div class="subtitle"><p>Architecture des Data Transfer Objects</p></div>
+</div>
+<div class="content">
+<div class="diagram-container">
+<!-- Request DTOs -->
+<div class="layer-title"><p>REQUEST DTOs</p></div>
+<div class="dto-row">
+<div class="dto-box primary">
+<div class="dto-header">
+<i class="fas fa-sign-in-alt dto-icon"></i>
+<div class="dto-name"><p>AuthRequest</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">username:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">password:</span> <span class="attr-type">string</span></p>
+</div>
+</div>
+</div>
+<div class="dto-box primary">
+<div class="dto-header">
+<i class="fas fa-sync-alt dto-icon"></i>
+<div class="dto-name"><p>RefreshRequest</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">refreshToken:</span> <span class="attr-type">string</span></p>
+</div>
+</div>
+</div>
+</div>
+<div class="arrow-indicator"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Response & Core DTOs -->
+<div class="layer-title"><p>RESPONSE &amp; CORE DTOs</p></div>
+<div class="dto-row">
+<div class="dto-box success">
+<div class="dto-header">
+<i class="fas fa-key dto-icon" style="color: #10b981;"></i>
+<div class="dto-name"><p>AuthResponse</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">accessToken:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">expiresAt:</span> <span class="attr-type">datetime</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">user:</span> <span class="attr-type">UserDTO</span></p>
+</div>
+</div>
+<div class="relationship-note"><p><i class="fas fa-arrow-right"></i> Contient UserDTO</p></div>
+</div>
+<div class="dto-box success">
+<div class="dto-header">
+<i class="fas fa-user dto-icon" style="color: #10b981;"></i>
+<div class="dto-name"><p>UserDTO</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">id:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">username:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">email:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">roles:</span> <span class="attr-type">[string]</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">permissions:</span> <span class="attr-type">[string]</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">tenantId:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">pack:</span> <span class="attr-type">PackDTO</span></p>
+</div>
+</div>
+<div class="relationship-note"><p><i class="fas fa-arrow-right"></i> Référence TenantDTO, PackDTO</p></div>
+</div>
+</div>
+<div class="arrow-indicator"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Configuration DTOs -->
+<div class="layer-title"><p>CONFIGURATION DTOs</p></div>
+<div class="dto-row">
+<div class="dto-box warning">
+<div class="dto-header">
+<i class="fas fa-building dto-icon" style="color: #f59e0b;"></i>
+<div class="dto-name"><p>TenantDTO</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">id:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">name:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">status:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">settings:</span> <span class="attr-type">Map&lt;string,any&gt;</span></p>
+</div>
+</div>
+</div>
+<div class="dto-box warning">
+<div class="dto-header">
+<i class="fas fa-bars dto-icon" style="color: #f59e0b;"></i>
+<div class="dto-name"><p>MenuDTO</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">items:</span> <span class="attr-type">Map&lt;string,MenuItem[]&gt;</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">byRole:</span> <span class="attr-type">Map&lt;string,string[]&gt;</span></p>
+</div>
+</div>
+<div class="relationship-note"><p><i class="fas fa-arrow-right"></i> Indexé par role/tenant</p></div>
+</div>
+<div class="dto-box warning">
+<div class="dto-header">
+<i class="fas fa-box dto-icon" style="color: #f59e0b;"></i>
+<div class="dto-name"><p>PackDTO</p></div>
+</div>
+<div class="dto-attributes">
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">id:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">name:</span> <span class="attr-type">string</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">startDate:</span> <span class="attr-type">date</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">endDate:</span> <span class="attr-type">date</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">features:</span> <span class="attr-type">[string]</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">deviceLimit:</span> <span class="attr-type">int</span></p>
+</div>
+<div class="dto-attr">
+<i class="fas fa-circle attr-icon"></i>
+<p><span class="attr-name">userLimit:</span> <span class="attr-type">int</span></p>
+</div>
+</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> JWT claims: sub, tenantId, roles, pack</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Relations: AuthResponse → UserDTO → PackDTO</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Multi-tenancy via tenantId</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> RBAC avec roles &amp; permissions</p></div>
+</div>
+</div>
+</div>
+</div></body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Diagramme de Séquence - Flux de Géolocalisation</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.sequence-diagram {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.actors-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+.actor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.actor-box {
+    background-color: rgba(37, 99, 235, 0.15);
+    border: 2px solid #2563eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+    width: 100%;
+}
+.actor-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.lifeline {
+    width: 2px;
+    background-color: #334155;
+    flex: 1;
+    margin: 8px auto;
+    position: relative;
+}
+.sequences {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+.sequence-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+.step-number {
+    font-size: 11px;
+    font-weight: 600;
+    color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+}
+.sequence-arrow {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.arrow-line {
+    flex: 1;
+    height: 2px;
+    background-color: #475569;
+    position: relative;
+}
+.arrow-line.primary {
+    background-color: #2563eb;
+}
+.arrow-line.success {
+    background-color: #10b981;
+}
+.arrow-line::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid #475569;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+.arrow-line.primary::after {
+    border-left-color: #2563eb;
+}
+.arrow-line.success::after {
+    border-left-color: #10b981;
+}
+.message-label {
+    font-size: 12px;
+    color: #cbd5e1;
+    background-color: rgba(30, 41, 59, 0.8);
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.key-points {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+.flow-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.flow-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+.flow-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.flow-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.flow-icon {
+    font-size: 20px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+.flow-icon.primary {
+    color: #2563eb;
+}
+.flow-icon.success {
+    color: #10b981;
+}
+.flow-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.flow-arrow {
+    color: #475569;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+}
+.interaction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.interaction-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: rgba(30, 41, 59, 0.6);
+    padding: 10px 16px;
+    border-radius: 6px;
+    border-left: 3px solid #475569;
+}
+.interaction-item.primary {
+    border-left-color: #2563eb;
+}
+.interaction-item.success {
+    border-left-color: #10b981;
+}
+.interaction-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+}
+.interaction-desc {
+    flex: 1;
+    font-size: 13px;
+    color: #cbd5e1;
+    margin: 0;
+}
+.interaction-icon {
+    color: #64748b;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Diagramme de Séquence – Flux de Géolocalisation</p></h1>
+<div class="subtitle"><p>Pipeline complet de traitement des données GPS en temps réel</p></div>
+</div>
+<div class="content">
+<div class="sequence-diagram">
+<!-- Actors Flow -->
+<div class="flow-grid">
+<div class="flow-step">
+<div class="flow-box primary">
+<div class="flow-icon primary"><i class="fas fa-mobile-alt"></i></div>
+<div class="flow-name"><p>Tracker</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+<div class="flow-step">
+<div class="flow-box primary">
+<div class="flow-icon primary"><i class="fas fa-server"></i></div>
+<div class="flow-name"><p>Traccar</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+<div class="flow-step">
+<div class="flow-box primary">
+<div class="flow-icon primary"><i class="fas fa-exchange-alt"></i></div>
+<div class="flow-name"><p>Adapter</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+<div class="flow-step">
+<div class="flow-box success">
+<div class="flow-icon success"><i class="fas fa-stream"></i></div>
+<div class="flow-name"><p>Kafka</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+</div>
+<div class="flow-grid" style="margin-top: -8px;">
+<div class="flow-step">
+<div class="flow-box primary">
+<div class="flow-icon primary"><i class="fas fa-location-arrow"></i></div>
+<div class="flow-name"><p>Tracking</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+<div class="flow-step">
+<div class="flow-box primary">
+<div class="flow-icon primary"><i class="fas fa-draw-polygon"></i></div>
+<div class="flow-name"><p>Geofence</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+<div class="flow-step">
+<div class="flow-box primary">
+<div class="flow-icon primary"><i class="fas fa-bell"></i></div>
+<div class="flow-name"><p>Notification</p></div>
+</div>
+</div>
+<div class="flow-step">
+<div class="flow-arrow"><p><i class="fas fa-arrow-right"></i></p></div>
+</div>
+<div class="flow-step">
+<div class="flow-box success">
+<div class="flow-icon success"><i class="fas fa-user"></i></div>
+<div class="flow-name"><p>User</p></div>
+</div>
+</div>
+<div class="flow-step"></div>
+</div>
+<!-- Sequence Steps -->
+<div class="interaction-list">
+<div class="interaction-item primary">
+<div class="interaction-number"><p>1</p></div>
+<div class="interaction-desc"><p>Tracker envoie la position GPS → Traccar (TCP/UDP)</p></div>
+<div class="interaction-icon"><i class="fas fa-arrow-right"></i></div>
+</div>
+<div class="interaction-item primary">
+<div class="interaction-number"><p>2</p></div>
+<div class="interaction-desc"><p>Traccar appelle Webhook → Adapter (HTTP POST)</p></div>
+<div class="interaction-icon"><i class="fas fa-arrow-right"></i></div>
+</div>
+<div class="interaction-item success">
+<div class="interaction-number"><p>3</p></div>
+<div class="interaction-desc"><p>Adapter publie les positions → Kafka (topic: positions)</p></div>
+<div class="interaction-icon"><i class="fas fa-stream"></i></div>
+</div>
+<div class="interaction-item primary">
+<div class="interaction-number"><p>4</p></div>
+<div class="interaction-desc"><p>Tracking consomme Kafka, met à jour Time-series DB et Elasticsearch, republie l'événement</p></div>
+<div class="interaction-icon"><i class="fas fa-database"></i></div>
+</div>
+<div class="interaction-item primary">
+<div class="interaction-number"><p>5</p></div>
+<div class="interaction-desc"><p>Geofence consomme Kafka, calcule Point-in-Polygon (PIP), détecte entrée/sortie de zone</p></div>
+<div class="interaction-icon"><i class="fas fa-draw-polygon"></i></div>
+</div>
+<div class="interaction-item success">
+<div class="interaction-number"><p>6</p></div>
+<div class="interaction-desc"><p>Geofence publie geofence.alert → Kafka si zone franchie</p></div>
+<div class="interaction-icon"><i class="fas fa-exclamation-triangle"></i></div>
+</div>
+<div class="interaction-item primary">
+<div class="interaction-number"><p>7</p></div>
+<div class="interaction-desc"><p>Notification consomme Kafka, applique templates et préférences utilisateur</p></div>
+<div class="interaction-icon"><i class="fas fa-filter"></i></div>
+</div>
+<div class="interaction-item success">
+<div class="interaction-number"><p>8</p></div>
+<div class="interaction-desc"><p>Envoi des alertes → User (SMS, Email, Push notifications)</p></div>
+<div class="interaction-icon"><i class="fas fa-paper-plane"></i></div>
+</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Flux asynchrone event-driven</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Webhooks &amp; Kafka messaging</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Géofencing temps réel</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Multi-canaux de notification</p></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Architecture d'Authentification</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.diagram-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.layer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.layer-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 4px 0;
+}
+.components-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+.component-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 140px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.component-box:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.component-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.component-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.component-box.warning {
+    border-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+.component-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+.component-icon.primary {
+    color: #2563eb;
+}
+.component-icon.success {
+    color: #10b981;
+}
+.component-icon.warning {
+    color: #f59e0b;
+}
+.component-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.component-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 4px 0 0 0;
+}
+.auth-flow-container {
+    border: 2px dashed #475569;
+    border-radius: 16px;
+    padding: 20px;
+    background-color: rgba(15, 23, 42, 0.5);
+    display: flex;
+    gap: 16px;
+    justify-content: space-around;
+    align-items: center;
+}
+.arrow-down {
+    text-align: center;
+    color: #475569;
+    font-size: 20px;
+    margin: 4px 0;
+}
+.arrow-horizontal {
+    color: #475569;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+}
+.key-points {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+.jwt-badge {
+    background-color: rgba(37, 99, 235, 0.2);
+    border: 1px solid #2563eb;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #60a5fa;
+    display: inline-block;
+    margin: 4px 2px;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Architecture d'Authentification</p></h1>
+<div class="subtitle"><p>Flux de sécurité avec Keycloak et JWT</p></div>
+</div>
+<div class="content">
+<div class="diagram-container">
+<!-- Client Layer -->
+<div class="layer">
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-user-circle"></i></div>
+<div class="component-name"><p>Client</p></div>
+<div class="component-desc"><p>Web / Mobile / Admin</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- API Gateway -->
+<div class="layer">
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-gateway"></i></div>
+<div class="component-name"><p>API Gateway</p></div>
+<div class="component-desc"><p>/auth/login • /auth/me • /auth/refresh</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Auth Facade Service with Keycloak and MongoDB -->
+<div class="auth-flow-container">
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-key"></i></div>
+<div class="component-name"><p>Keycloak</p></div>
+<div class="component-desc"><p>Single Realm</p></div>
+<div style="margin-top: 8px;">
+<span class="jwt-badge"><p>JWT RS256</p></span>
+</div>
+</div>
+<div class="arrow-horizontal"><p><i class="fas fa-arrows-left-right"></i></p></div>
+<div class="component-box primary" style="min-width: 180px;">
+<div class="component-icon primary"><i class="fas fa-shield-halved"></i></div>
+<div class="component-name"><p>Auth Facade Service</p></div>
+<div class="component-desc"><p>Validation • Token Management</p></div>
+</div>
+<div class="arrow-horizontal"><p><i class="fas fa-arrows-left-right"></i></p></div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>MongoDB</p></div>
+<div class="component-desc"><p>Users • Menus • Packs</p></div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Response -->
+<div class="layer">
+<div class="components-row">
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-file-signature"></i></div>
+<div class="component-name"><p>JWT Response</p></div>
+<div class="component-desc"><p>accessToken + refreshToken</p></div>
+<div style="margin-top: 8px; text-align: left;">
+<span class="jwt-badge"><p>sub</p></span>
+<span class="jwt-badge"><p>tenantId</p></span>
+<span class="jwt-badge"><p>roles</p></span>
+<span class="jwt-badge"><p>pack</p></span>
+<span class="jwt-badge"><p>exp</p></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> JWT RS256 avec claims personnalisés</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> RBAC enforcement au Gateway et services</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Refresh token pour renouvellement</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Single Sign-On (SSO) ready</p></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Flux de Données Temps Réel</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.pipeline-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.pipeline-stage {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.stage-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    min-width: 80px;
+    text-align: right;
+}
+.stage-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.component-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 14px 18px;
+    min-width: 120px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.component-box:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.component-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.component-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.component-box.warning {
+    border-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+.component-box.info {
+    border-color: #06b6d4;
+    background-color: rgba(6, 182, 212, 0.15);
+}
+.component-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+.component-icon.primary {
+    color: #2563eb;
+}
+.component-icon.success {
+    color: #10b981;
+}
+.component-icon.warning {
+    color: #f59e0b;
+}
+.component-icon.info {
+    color: #06b6d4;
+}
+.component-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.component-desc {
+    font-size: 10px;
+    color: #94a3b8;
+    margin: 3px 0 0 0;
+}
+.arrow-right {
+    color: #475569;
+    font-size: 18px;
+}
+.flow-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.multi-box {
+    display: flex;
+    gap: 8px;
+}
+.key-points {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+.legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 11px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+}
+.legend-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 2px solid;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Flux de Données Temps Réel</p></h1>
+<div class="subtitle"><p>Pipeline complet de l'ingestion à la distribution</p></div>
+</div>
+<div class="content">
+<div class="pipeline-container">
+<!-- Stage 1: Ingestion -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>INGESTION</p></div>
+<div class="stage-content">
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-satellite-dish"></i></div>
+<div class="component-name"><p>GPS Trackers</p></div>
+<div class="component-desc"><p>TCP/UDP</p></div>
+</div>
+<div class="arrow-right"><p><i class="fas fa-arrow-right"></i></p></div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-server"></i></div>
+<div class="component-name"><p>Traccar</p></div>
+<div class="component-desc"><p>Protocol Handler</p></div>
+</div>
+</div>
+</div>
+<!-- Stage 2: Integration -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>INTEGRATION</p></div>
+<div class="stage-content">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-plug"></i></div>
+<div class="component-name"><p>Traccar Adapter</p></div>
+<div class="component-desc"><p>Webhook Handler</p></div>
+</div>
+<div class="arrow-right"><p><i class="fas fa-arrow-right"></i></p></div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-stream"></i></div>
+<div class="component-name"><p>Kafka</p></div>
+<div class="component-desc"><p>Message Broker</p></div>
+</div>
+</div>
+</div>
+<!-- Stage 3: Processing -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>PROCESSING</p></div>
+<div class="stage-content">
+<div class="flow-group">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-location-arrow"></i></div>
+<div class="component-name"><p>Tracking Service</p></div>
+<div class="component-desc"><p>Position Updates</p></div>
+</div>
+<div class="arrow-right"><p><i class="fas fa-arrow-right"></i></p></div>
+<div class="multi-box">
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-chart-line"></i></div>
+<div class="component-name"><p>Time-series DB</p></div>
+<div class="component-desc"><p>Positions</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-search"></i></div>
+<div class="component-name"><p>Elasticsearch</p></div>
+<div class="component-desc"><p>Geoloc/Historic</p></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 4: Analysis -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>ANALYSIS</p></div>
+<div class="stage-content">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-draw-polygon"></i></div>
+<div class="component-name"><p>Geofencing Service</p></div>
+<div class="component-desc"><p>Point-in-Polygon</p></div>
+</div>
+<div class="arrow-right"><p><i class="fas fa-arrow-right"></i></p></div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-stream"></i></div>
+<div class="component-name"><p>Kafka</p></div>
+<div class="component-desc"><p>Geofence Alerts</p></div>
+</div>
+</div>
+</div>
+<!-- Stage 5: Notification -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>NOTIFICATION</p></div>
+<div class="stage-content">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-bell"></i></div>
+<div class="component-name"><p>Notification Service</p></div>
+<div class="component-desc"><p>Alert Dispatcher</p></div>
+</div>
+<div class="arrow-right"><p><i class="fas fa-arrow-right"></i></p></div>
+<div class="multi-box">
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-envelope"></i></div>
+<div class="component-name"><p>Email</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-sms"></i></div>
+<div class="component-name"><p>SMS</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-mobile-alt"></i></div>
+<div class="component-name"><p>Push</p></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 6: Distribution -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>DISTRIBUTION</p></div>
+<div class="stage-content">
+<div class="component-box info">
+<div class="component-icon info"><i class="fas fa-users"></i></div>
+<div class="component-name"><p>End Users</p></div>
+<div class="component-desc"><p>Web/Mobile/Webhooks</p></div>
+</div>
+</div>
+</div>
+<!-- Stage 7: Analytics -->
+<div class="pipeline-stage">
+<div class="stage-label"><p>ANALYTICS</p></div>
+<div class="stage-content">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>Historisation Service</p></div>
+<div class="component-desc"><p>Long-term Storage</p></div>
+</div>
+<div class="arrow-right"><p><i class="fas fa-arrow-right"></i></p></div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-search"></i></div>
+<div class="component-name"><p>Elasticsearch</p></div>
+<div class="component-desc"><p>Analytics/BI</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="legend">
+<div class="legend-item">
+<div class="legend-box" style="border-color: #2563eb; background-color: rgba(37, 99, 235, 0.15);"></div>
+<p>Services</p>
+</div>
+<div class="legend-item">
+<div class="legend-box" style="border-color: #10b981; background-color: rgba(16, 185, 129, 0.15);"></div>
+<p>Bases de données</p>
+</div>
+<div class="legend-item">
+<div class="legend-box" style="border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.15);"></div>
+<p>Sources/Intégrations</p>
+</div>
+<div class="legend-item">
+<div class="legend-box" style="border-color: #06b6d4; background-color: rgba(6, 182, 212, 0.15);"></div>
+<p>Utilisateurs</p>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Pipeline asynchrone et résilient</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Traitement temps réel via Kafka</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Multi-canal de notification</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Stockage temps réel + historique</p></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Architecture Détaillée des Services</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.diagram-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.layer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.layer-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 4px 0;
+}
+.components-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.component-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 14px 18px;
+    min-width: 130px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.component-box:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.component-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.component-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.component-box.warning {
+    border-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+.component-box.info {
+    border-color: #06b6d4;
+    background-color: rgba(6, 182, 212, 0.15);
+}
+.component-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+.component-icon.primary {
+    color: #2563eb;
+}
+.component-icon.success {
+    color: #10b981;
+}
+.component-icon.warning {
+    color: #f59e0b;
+}
+.component-icon.info {
+    color: #06b6d4;
+}
+.component-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.component-desc {
+    font-size: 10px;
+    color: #94a3b8;
+    margin: 4px 0 0 0;
+}
+.arrow-down {
+    text-align: center;
+    color: #475569;
+    font-size: 18px;
+    margin: 2px 0;
+}
+.key-points {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #cbd5e1;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Architecture Détaillée des Services</p></h1>
+<div class="subtitle"><p>Vue complète des clients, services et intégrations</p></div>
+</div>
+<div class="content">
+<div class="diagram-container">
+<!-- Clients Layer -->
+<div class="layer">
+<div class="layer-title"><p>CLIENTS</p></div>
+<div class="components-row">
+<div class="component-box info">
+<div class="component-icon info"><i class="fas fa-desktop"></i></div>
+<div class="component-name"><p>Web Application</p></div>
+<div class="component-desc"><p>HTTP / WebSocket</p></div>
+</div>
+<div class="component-box info">
+<div class="component-icon info"><i class="fas fa-user-shield"></i></div>
+<div class="component-name"><p>Admin Portal</p></div>
+<div class="component-desc"><p>HTTP / WebSocket</p></div>
+</div>
+<div class="component-box info">
+<div class="component-icon info"><i class="fas fa-mobile-alt"></i></div>
+<div class="component-name"><p>Mobile Apps</p></div>
+<div class="component-desc"><p>HTTP / WebSocket</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- API Gateway -->
+<div class="layer">
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-gateway"></i></div>
+<div class="component-name"><p>API Gateway</p></div>
+<div class="component-desc"><p>Routing, Auth, Rate Limiting</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Services Layer -->
+<div class="layer">
+<div class="layer-title"><p>MICROSERVICES</p></div>
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-shield-alt"></i></div>
+<div class="component-name"><p>Auth Service</p></div>
+<div class="component-desc"><p>Keycloak Integration</p></div>
+</div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-location-arrow"></i></div>
+<div class="component-name"><p>Tracking</p></div>
+<div class="component-desc"><p>Positions Réelles</p></div>
+</div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-draw-polygon"></i></div>
+<div class="component-name"><p>Geofencing</p></div>
+<div class="component-desc"><p>Zones &amp; Alertes</p></div>
+</div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-bell"></i></div>
+<div class="component-name"><p>Notification</p></div>
+<div class="component-desc"><p>SMS / Email / Push</p></div>
+</div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-credit-card"></i></div>
+<div class="component-name"><p>Billing/Packs</p></div>
+<div class="component-desc"><p>Quotas &amp; Facturation</p></div>
+</div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>Historisation</p></div>
+<div class="component-desc"><p>Analytics &amp; Recherche</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Data & Integration Layer -->
+<div class="layer">
+<div class="layer-title"><p>STOCKAGE &amp; INTÉGRATIONS</p></div>
+<div class="components-row">
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>MongoDB</p></div>
+<div class="component-desc"><p>Users, Tenants, Menus</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-stream"></i></div>
+<div class="component-name"><p>Kafka</p></div>
+<div class="component-desc"><p>Events &amp; Positions</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-chart-line"></i></div>
+<div class="component-name"><p>Time-series DB</p></div>
+<div class="component-desc"><p>Positions en Temps Réel</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-search"></i></div>
+<div class="component-name"><p>Elasticsearch</p></div>
+<div class="component-desc"><p>Geoloc &amp; Historique</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-bolt"></i></div>
+<div class="component-name"><p>Redis</p></div>
+<div class="component-desc"><p>Cache &amp; Sessions</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-envelope"></i></div>
+<div class="component-name"><p>SMTP/SMS</p></div>
+<div class="component-desc"><p>Providers Externes</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-plug"></i></div>
+<div class="component-name"><p>Webhooks</p></div>
+<div class="component-desc"><p>Intégrations Externes</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Architecture microservices découplée</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Communication asynchrone via Kafka</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Multi-protocoles (HTTP/WS)</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Extensibilité par webhooks</p></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Multi-tenancy &amp; Sécurité</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    gap: 40px;
+}
+.column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.column-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 3px solid #2563eb;
+}
+.column-icon {
+    font-size: 32px;
+    color: #2563eb;
+}
+.column-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.column-content {
+    flex: 1;
+}
+.feature-item {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+.feature-item:hover {
+    background-color: rgba(30, 41, 59, 0.9);
+    transform: translateX(4px);
+}
+.feature-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.feature-title i {
+    color: #2563eb;
+    font-size: 14px;
+}
+.feature-desc {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.6;
+}
+.highlight-box {
+    background-color: rgba(37, 99, 235, 0.15);
+    border: 1px solid #2563eb;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+.highlight-box p {
+    font-size: 13px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.6;
+}
+.highlight-box strong {
+    color: #2563eb;
+}
+.column.security .column-header {
+    border-bottom-color: #10b981;
+}
+.column.security .column-icon {
+    color: #10b981;
+}
+.column.security .feature-item {
+    border-left-color: #10b981;
+}
+.column.security .feature-title i {
+    color: #10b981;
+}
+.column.security .highlight-box {
+    background-color: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+}
+.column.security .highlight-box strong {
+    color: #10b981;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Multi-tenancy &amp; Sécurité (RBAC)</p></h1>
+</div>
+<div class="content">
+<!-- Colonne Multi-tenancy -->
+<div class="column">
+<div class="column-header">
+<div class="column-icon"><i class="fas fa-building"></i></div>
+<div class="column-title"><p>Multi-tenancy</p></div>
+</div>
+<div class="column-content">
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-layer-group"></i> Isolation Logique</p></div>
+<div class="feature-desc"><p>TenantId dans JWT, requêtes DB, topics Kafka. Partitionnement et index MongoDB par tenant.</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-th"></i> Menus Dynamiques</p></div>
+<div class="feature-desc"><p>Configuration par tenant et rôle. MenuDTO avec items et permissions spécifiques.</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-box"></i> Packs &amp; Quotas</p></div>
+<div class="feature-desc"><p>PackDTO: features activées, deviceLimit, userLimit, startDate/endDate. Metering en temps réel.</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-route"></i> Routage Gateway</p></div>
+<div class="feature-desc"><p>Filtrage et routage par tenantId au niveau API Gateway. Validation et enforcement des quotas.</p></div>
+</div>
+<div class="highlight-box">
+<p><strong>Garantie:</strong> Isolation complète des données, aucune fuite inter-tenant. Scalabilité horizontale par tenant.</p>
+</div>
+</div>
+</div>
+<!-- Colonne Sécurité -->
+<div class="column security">
+<div class="column-header">
+<div class="column-icon"><i class="fas fa-shield-alt"></i></div>
+<div class="column-title"><p>Sécurité / RBAC</p></div>
+</div>
+<div class="column-content">
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-key"></i> Keycloak Single Realm</p></div>
+<div class="feature-desc"><p>Clients dédiés (web, admin). SSO, gestion centralisée des identités, intégration LDAP/AD possible.</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-id-badge"></i> JWT RS256</p></div>
+<div class="feature-desc"><p>Claims: sub, tenantId, roles, pack, exp. Signature asymétrique, validation à chaque service.</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-users-cog"></i> Rôles &amp; Permissions</p></div>
+<div class="feature-desc"><p>Rôles: tenant_admin, operator, viewer. Permissions granulaires par ressource et action.</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-title"><p><i class="fas fa-lock"></i> Sécurité Infrastructure</p></div>
+<div class="feature-desc"><p>Rotation secrets K8s, rate limiting, CORS, audit logging. NetworkPolicies et TLS end-to-end.</p></div>
+</div>
+<div class="highlight-box">
+<p><strong>Conformité:</strong> RBAC strict, audit trail complet, conformité RGPD. Principe du moindre privilège.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Modules Fonctionnels</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 8px 0 0 0;
+}
+.content {
+    flex: 1;
+    padding: 10px 60px 40px;
+    display: flex;
+    align-items: center;
+}
+.modules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    width: 100%;
+}
+.module-card {
+    background-color: rgba(30, 41, 59, 0.6);
+    border: 2px solid #334155;
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.module-card:hover {
+    border-color: #2563eb;
+    background-color: rgba(30, 41, 59, 0.9);
+    transform: translateY(-4px);
+}
+.module-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #2563eb;
+}
+.module-card:nth-child(2) .module-icon {
+    color: #10b981;
+}
+.module-card:nth-child(3) .module-icon {
+    color: #f59e0b;
+}
+.module-card:nth-child(4) .module-icon {
+    color: #8b5cf6;
+}
+.module-card:nth-child(5) .module-icon {
+    color: #ec4899;
+}
+.module-card:nth-child(6) .module-icon {
+    color: #06b6d4;
+}
+.module-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 12px 0;
+}
+.module-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Modules Fonctionnels</p></h1>
+<div class="subtitle"><p>Services principaux de la plateforme</p></div>
+</div>
+<div class="content">
+<div class="modules-grid">
+<div class="module-card">
+<div class="module-icon"><i class="fas fa-shield-alt"></i></div>
+<div class="module-title"><p>Auth Service + Keycloak</p></div>
+<div class="module-desc"><p>Authentification, SSO, gestion des identités, login/refresh, RBAC</p></div>
+</div>
+<div class="module-card">
+<div class="module-icon"><i class="fas fa-location-arrow"></i></div>
+<div class="module-title"><p>Tracking / Traccar Adapter</p></div>
+<div class="module-desc"><p>Ingestion GPS, normalisation données, dédoublonnage, webhook integration</p></div>
+</div>
+<div class="module-card">
+<div class="module-icon"><i class="fas fa-draw-polygon"></i></div>
+<div class="module-title"><p>Geofencing Service</p></div>
+<div class="module-desc"><p>Zones géographiques, détection entrée/sortie, règles vitesse, alertes</p></div>
+</div>
+<div class="module-card">
+<div class="module-icon"><i class="fas fa-bell"></i></div>
+<div class="module-title"><p>Notification Service</p></div>
+<div class="module-desc"><p>Templates, multi-canaux (SMS/Email/Push), préférences utilisateur, webhooks</p></div>
+</div>
+<div class="module-card">
+<div class="module-icon"><i class="fas fa-credit-card"></i></div>
+<div class="module-title"><p>Billing / Packs</p></div>
+<div class="module-desc"><p>Plans tarifaires, gestion quotas, metering temps réel, facturation</p></div>
+</div>
+<div class="module-card">
+<div class="module-icon"><i class="fas fa-database"></i></div>
+<div class="module-title"><p>Historisation</p></div>
+<div class="module-desc"><p>Stockage long terme, recherche avancée, export données, analytics</p></div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Infrastructure Kubernetes</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.diagram-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.layer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.layer-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 4px 0;
+}
+.components-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.component-box {
+    background-color: rgba(30, 41, 59, 0.8);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 120px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.component-box:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.component-box.primary {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.15);
+}
+.component-box.success {
+    border-color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+.component-box.warning {
+    border-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
+}
+.component-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+.component-icon.primary {
+    color: #2563eb;
+}
+.component-icon.success {
+    color: #10b981;
+}
+.component-icon.warning {
+    color: #f59e0b;
+}
+.component-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0;
+}
+.component-desc {
+    font-size: 10px;
+    color: #94a3b8;
+    margin: 3px 0 0 0;
+}
+.namespace-container {
+    border: 2px dashed #475569;
+    border-radius: 16px;
+    padding: 16px;
+    background-color: rgba(15, 23, 42, 0.5);
+}
+.namespace-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.2);
+    padding: 4px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+.arrow-down {
+    text-align: center;
+    color: #475569;
+    font-size: 18px;
+    margin: 2px 0;
+}
+.key-points {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+.key-point {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-left: 3px solid #2563eb;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #cbd5e1;
+}
+.cluster-badge {
+    display: inline-block;
+    background-color: rgba(37, 99, 235, 0.2);
+    border: 1px solid #2563eb;
+    color: #60a5fa;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Infrastructure Kubernetes</p></h1>
+<div class="subtitle"><p>Déploiement, scalabilité et haute disponibilité</p></div>
+</div>
+<div class="content">
+<div class="diagram-container">
+<!-- Cluster Badge -->
+<div style="text-align: center;">
+<div class="cluster-badge"><p><i class="fab fa-kubernetes"></i> Kubernetes Cluster</p></div>
+</div>
+<!-- Ingress Layer -->
+<div class="layer">
+<div class="layer-title"><p>INGRESS &amp; LOAD BALANCING</p></div>
+<div class="components-row">
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-network-wired"></i></div>
+<div class="component-name"><p>Ingress Controller</p></div>
+<div class="component-desc"><p>Nginx + TLS</p></div>
+</div>
+<div class="component-box primary">
+<div class="component-icon primary"><i class="fas fa-balance-scale"></i></div>
+<div class="component-name"><p>Load Balancer</p></div>
+<div class="component-desc"><p>Cloud Provider</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Namespace with Deployments -->
+<div class="namespace-container">
+<div class="namespace-label"><p><i class="fas fa-cube"></i> Namespace: staas - Deployments + HPA</p></div>
+<div class="components-row">
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-gateway"></i></div>
+<div class="component-name"><p>API Gateway</p></div>
+<div class="component-desc"><p>Replicas: 3-10</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-shield-alt"></i></div>
+<div class="component-name"><p>Auth Service</p></div>
+<div class="component-desc"><p>HPA enabled</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-location-arrow"></i></div>
+<div class="component-name"><p>Tracking</p></div>
+<div class="component-desc"><p>HPA enabled</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-draw-polygon"></i></div>
+<div class="component-name"><p>Geofencing</p></div>
+<div class="component-desc"><p>HPA enabled</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-bell"></i></div>
+<div class="component-name"><p>Notification</p></div>
+<div class="component-desc"><p>HPA enabled</p></div>
+</div>
+<div class="component-box">
+<div class="component-icon primary"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>Historisation</p></div>
+<div class="component-desc"><p>HPA enabled</p></div>
+</div>
+</div>
+</div>
+<div class="arrow-down"><p><i class="fas fa-arrow-down"></i></p></div>
+<!-- Data Layer -->
+<div class="layer">
+<div class="layer-title"><p>DATA &amp; MESSAGING LAYER</p></div>
+<div class="components-row">
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-database"></i></div>
+<div class="component-name"><p>MongoDB</p></div>
+<div class="component-desc"><p>StatefulSet + PVC</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-stream"></i></div>
+<div class="component-name"><p>Kafka</p></div>
+<div class="component-desc"><p>Cluster 3 nodes</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-bolt"></i></div>
+<div class="component-name"><p>Redis</p></div>
+<div class="component-desc"><p>Cache + Session</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-search"></i></div>
+<div class="component-name"><p>Elasticsearch</p></div>
+<div class="component-desc"><p>StatefulSet</p></div>
+</div>
+<div class="component-box success">
+<div class="component-icon success"><i class="fas fa-chart-line"></i></div>
+<div class="component-name"><p>TimescaleDB</p></div>
+<div class="component-desc"><p>Time-series</p></div>
+</div>
+</div>
+</div>
+<!-- Infrastructure Layer -->
+<div class="layer">
+<div class="layer-title"><p>INFRASTRUCTURE &amp; OPERATIONS</p></div>
+<div class="components-row">
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-cog"></i></div>
+<div class="component-name"><p>ConfigMaps</p></div>
+<div class="component-desc"><p>App config</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-key"></i></div>
+<div class="component-name"><p>Secrets</p></div>
+<div class="component-desc"><p>Credentials</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-chart-bar"></i></div>
+<div class="component-name"><p>Prometheus</p></div>
+<div class="component-desc"><p>Metrics</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-tachometer-alt"></i></div>
+<div class="component-name"><p>Grafana</p></div>
+<div class="component-desc"><p>Dashboards</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-file-alt"></i></div>
+<div class="component-name"><p>EFK Stack</p></div>
+<div class="component-desc"><p>Logs</p></div>
+</div>
+<div class="component-box warning">
+<div class="component-icon warning"><i class="fas fa-lock"></i></div>
+<div class="component-name"><p>NetworkPolicy</p></div>
+<div class="component-desc"><p>Security</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Haute disponibilité (HA)</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Autoscaling HPA</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Rolling updates</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Pod Disruption Budget</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Anti-affinité</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> Observabilité complète</p></div>
+<div class="key-point"><p><i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i> TLS + Secrets rotation</p></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Roadmap 12 Mois</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 8px 0 0 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.timeline-container {
+    display: flex;
+    gap: 20px;
+    position: relative;
+    margin-top: 20px;
+}
+.timeline-line {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #334155;
+}
+.quarter-box {
+    flex: 1;
+    position: relative;
+    z-index: 2;
+}
+.quarter-header {
+    background-color: rgba(37, 99, 235, 0.2);
+    border: 2px solid #2563eb;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+}
+.quarter-header::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background-color: #2563eb;
+    border-radius: 50%;
+    border: 3px solid #0f172a;
+}
+.quarter-box:nth-child(2) .quarter-header {
+    background-color: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+}
+.quarter-box:nth-child(2) .quarter-header::before {
+    background-color: #10b981;
+}
+.quarter-box:nth-child(3) .quarter-header {
+    background-color: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+}
+.quarter-box:nth-child(3) .quarter-header::before {
+    background-color: #f59e0b;
+}
+.quarter-box:nth-child(4) .quarter-header {
+    background-color: rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+}
+.quarter-box:nth-child(4) .quarter-header::before {
+    background-color: #8b5cf6;
+}
+.quarter-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0 0 4px 0;
+}
+.quarter-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.quarter-content {
+    background-color: rgba(30, 41, 59, 0.6);
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 16px;
+}
+.deliverable-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.deliverable-item:last-child {
+    margin-bottom: 0;
+}
+.deliverable-icon {
+    color: #2563eb;
+    font-size: 12px;
+    margin-top: 2px;
+}
+.quarter-box:nth-child(2) .deliverable-icon {
+    color: #10b981;
+}
+.quarter-box:nth-child(3) .deliverable-icon {
+    color: #f59e0b;
+}
+.quarter-box:nth-child(4) .deliverable-icon {
+    color: #8b5cf6;
+}
+.deliverable-text {
+    font-size: 12px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.4;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Roadmap 12 Mois</p></h1>
+<div class="subtitle"><p>Planification stratégique par trimestre</p></div>
+</div>
+<div class="content">
+<div class="timeline-container">
+<div class="timeline-line"></div>
+<div class="quarter-box">
+<div class="quarter-header">
+<div class="quarter-label"><p>Q1 2025</p></div>
+<div class="quarter-title"><p>MVP</p></div>
+</div>
+<div class="quarter-content">
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Auth, Tracking, Geofencing</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>UI carte live temps réel</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>RBAC de base</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Multi-tenant minimal</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Déploiement Kubernetes</p></div>
+</div>
+</div>
+</div>
+<div class="quarter-box">
+<div class="quarter-header">
+<div class="quarter-label"><p>Q2 2025</p></div>
+<div class="quarter-title"><p>Notifications</p></div>
+</div>
+<div class="quarter-content">
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Templates notifications</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Préférences utilisateur</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Webhooks sortants</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Billing/Packs</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Portail admin, HA/SLA</p></div>
+</div>
+</div>
+</div>
+<div class="quarter-box">
+<div class="quarter-header">
+<div class="quarter-label"><p>Q3 2025</p></div>
+<div class="quarter-title"><p>Analytics &amp; BI</p></div>
+</div>
+<div class="quarter-content">
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Dashboards avancés</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Heatmaps &amp; visualisations</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>ETL et data warehouse</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>API publiques</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Export données, alertes</p></div>
+</div>
+</div>
+</div>
+<div class="quarter-box">
+<div class="quarter-header">
+<div class="quarter-label"><p>Q4 2025</p></div>
+<div class="quarter-title"><p>Expansion IoT</p></div>
+</div>
+<div class="quarter-content">
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Nouveaux trackers/protocoles</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Edge processing</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>ML détection anomalies</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>Marketplace intégrations</p></div>
+</div>
+<div class="deliverable-item">
+<div class="deliverable-icon"><i class="fas fa-check-circle"></i></div>
+<div class="deliverable-text"><p>SDK &amp; developer portal</p></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Business Model SaaS</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 8px 0 0 0;
+}
+.content {
+    flex: 1;
+    padding: 10px 60px 40px;
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+}
+.pricing-card {
+    flex: 1;
+    background-color: rgba(30, 41, 59, 0.6);
+    border: 2px solid #334155;
+    border-radius: 16px;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+.pricing-card:hover {
+    transform: translateY(-4px);
+}
+.pricing-card.featured {
+    border-color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.12);
+    transform: scale(1.05);
+}
+.pricing-card.featured:hover {
+    transform: scale(1.05) translateY(-4px);
+}
+.card-badge {
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+}
+.card-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 12px 0;
+    text-align: center;
+}
+.card-price {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.price-amount {
+    font-size: 42px;
+    font-weight: 700;
+    color: #2563eb;
+    margin: 0;
+}
+.pricing-card:nth-child(2) .price-amount {
+    color: #10b981;
+}
+.pricing-card:nth-child(3) .price-amount {
+    color: #8b5cf6;
+}
+.price-period {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 4px 0 0 0;
+}
+.features-list {
+    flex: 1;
+    margin-bottom: 24px;
+}
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.feature-icon {
+    color: #10b981;
+    font-size: 14px;
+    margin-top: 2px;
+}
+.feature-text {
+    font-size: 13px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.5;
+}
+.cta-button {
+    background-color: rgba(37, 99, 235, 0.2);
+    border: 2px solid #2563eb;
+    color: #2563eb;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.cta-button:hover {
+    background-color: #2563eb;
+    color: #ffffff;
+}
+.pricing-card:nth-child(2) .cta-button {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+}
+.pricing-card:nth-child(3) .cta-button {
+    background-color: rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+    color: #8b5cf6;
+}
+.pricing-card:nth-child(3) .cta-button:hover {
+    background-color: #8b5cf6;
+    color: #ffffff;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Business Model SaaS</p></h1>
+<div class="subtitle"><p>Tarification flexible par paliers</p></div>
+</div>
+<div class="content">
+<div class="pricing-card">
+<div class="card-title"><p>Starter</p></div>
+<div class="card-price">
+<div class="price-amount"><p>10000 XOF</p></div>
+<div class="price-period"><p>par mois</p></div>
+</div>
+<div class="features-list">
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Jusqu'à 20 devices</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>2 utilisateurs inclus</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Geofencing de base</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Notifications email</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Historique 30 jours</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Support standard</p></div>
+</div>
+</div>
+<div class="cta-button">
+<p>Commencer</p>
+</div>
+</div>
+<div class="pricing-card featured">
+<div class="card-badge"><p>Recommandé</p></div>
+<div class="card-title"><p>Professional</p></div>
+<div class="card-price">
+<div class="price-amount"><p>45000 XOF</p></div>
+<div class="price-period"><p>par mois</p></div>
+</div>
+<div class="features-list">
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Jusqu'à 200 devices</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>20 utilisateurs inclus</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Geofencing avancé</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Multi-canaux (SMS/Email/Push)</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Webhooks personnalisés</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Historique 1 an</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Support prioritaire</p></div>
+</div>
+</div>
+<div class="cta-button">
+<p>Démarrer l'essai</p>
+</div>
+</div>
+<div class="pricing-card">
+<div class="card-title"><p>Enterprise</p></div>
+<div class="card-price">
+<div class="price-amount"><p>Sur mesure</p></div>
+<div class="price-period"><p>contactez-nous</p></div>
+</div>
+<div class="features-list">
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Devices illimités</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Utilisateurs illimités</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>SSO / SCIM / LDAP</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>SLA personnalisé</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Déploiement dédié</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Historique illimité</p></div>
+</div>
+<div class="feature-item">
+<div class="feature-icon"><i class="fas fa-check-circle"></i></div>
+<div class="feature-text"><p>Support 24/7 dédié</p></div>
+</div>
+</div>
+<div class="cta-button">
+<p>Nous contacter</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KPI Financiers</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 35px 60px 15px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.subtitle {
+    font-size: 16px;
+    color: #64748b;
+    margin: 6px 0 0 0;
+}
+.content {
+    flex: 1;
+    padding: 15px 60px 35px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+.kpi-card {
+    background-color: rgba(30, 41, 59, 0.6);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: all 0.3s ease;
+}
+.kpi-card:hover {
+    border-color: #2563eb;
+    transform: translateY(-2px);
+}
+.kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.kpi-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.kpi-icon {
+    font-size: 18px;
+    color: #2563eb;
+}
+.kpi-card:nth-child(2) .kpi-icon {
+    color: #10b981;
+}
+.kpi-card:nth-child(3) .kpi-icon {
+    color: #f59e0b;
+}
+.kpi-card:nth-child(4) .kpi-icon {
+    color: #ec4899;
+}
+.kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 6px 0;
+}
+.kpi-trend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+.trend-positive {
+    color: #10b981;
+}
+.trend-negative {
+    color: #ef4444;
+}
+.chart-container {
+    background-color: rgba(30, 41, 59, 0.6);
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.chart-header {
+    margin-bottom: 12px;
+}
+.chart-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 4px 0;
+}
+.chart-subtitle {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0;
+}
+.chart-wrapper {
+    flex: 1;
+    position: relative;
+    height: 280px;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>KPI Financiers</p></h1>
+<div class="subtitle"><p>Métriques clés et projections de croissance</p></div>
+</div>
+<div class="content">
+<div class="kpi-grid">
+<div class="kpi-card">
+<div class="kpi-header">
+<div class="kpi-label"><p>MRR / ARR</p></div>
+<div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+</div>
+<div class="kpi-value"><p>70000 XOF</p></div>
+<div class="kpi-trend trend-positive">
+<i class="fas fa-arrow-up"></i>
+<p>+28% MoM</p>
+</div>
+</div>
+<div class="kpi-card">
+<div class="kpi-header">
+<div class="kpi-label"><p>CAC</p></div>
+<div class="kpi-icon"><i class="fas fa-euro-sign"></i></div>
+</div>
+<div class="kpi-value"><p>100000 XOF</p></div>
+<div class="kpi-trend trend-positive">
+<i class="fas fa-arrow-down"></i>
+<p>-15% vs Q1</p>
+</div>
+</div>
+<div class="kpi-card">
+<div class="kpi-header">
+<div class="kpi-label"><p>LTV</p></div>
+<div class="kpi-icon"><i class="fas fa-coins"></i></div>
+</div>
+<div class="kpi-value"><p>5400000 XOFk</p></div>
+<div class="kpi-trend trend-positive">
+<i class="fas fa-arrow-up"></i>
+<p>LTV:CAC 12:1</p>
+</div>
+</div>
+<div class="kpi-card">
+<div class="kpi-header">
+<div class="kpi-label"><p>Churn Rate</p></div>
+<div class="kpi-icon"><i class="fas fa-user-minus"></i></div>
+</div>
+<div class="kpi-value"><p>3.2%</p></div>
+<div class="kpi-trend trend-positive">
+<i class="fas fa-arrow-down"></i>
+<p>-0.8% vs avg</p>
+</div>
+</div>
+</div>
+<div class="chart-container">
+<div class="chart-header">
+<div class="chart-title"><p>Projection MRR - 3 Ans</p></div>
+<div class="chart-subtitle"><p>Croissance mensuelle récurrente avec hypothèses: 20% growth rate, 3% churn</p></div>
+</div>
+<div class="chart-wrapper">
+<canvas id="mrrChart"></canvas>
+</div>
+</div>
+</div>
+</div>
+<script>
+const ctx = document.getElementById('mrrChart').getContext('2d');
+const mrrChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Jan 25', 'Avr 25', 'Juil 25', 'Oct 25', 'Jan 26', 'Avr 26', 'Juil 26', 'Oct 26', 'Jan 27', 'Avr 27', 'Juil 27', 'Oct 27', 'Déc 27'],
+        datasets: [{
+            label: 'MRR Réel',
+            data: [42, 48, 55, 63, null, null, null, null, null, null, null, null, null],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        }, {
+            label: 'MRR Projeté',
+            data: [null, null, null, 63, 72, 84, 98, 115, 135, 158, 185, 217, 250],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            borderDash: [5, 5],
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                    color: '#cbd5e1',
+                    font: {
+                        size: 13,
+                        family: 'Inter'
+                    },
+                    padding: 15,
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#ffffff',
+                bodyColor: '#cbd5e1',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 12,
+                displayColors: true,
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': €' + context.parsed.y + 'k';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: '#94a3b8',
+                    font: {
+                        size: 12
+                    },
+                    callback: function(value) {
+                        return '€' + value + 'k';
+                    }
+                },
+                grid: {
+                    color: 'rgba(51, 65, 85, 0.5)',
+                    drawBorder: false
+                }
+            },
+            x: {
+                ticks: {
+                    color: '#94a3b8',
+                    font: {
+                        size: 11
+                    },
+                    maxRotation: 0
+                },
+                grid: {
+                    color: 'rgba(51, 65, 85, 0.3)',
+                    drawBorder: false
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    }
+});
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conclusion Exécutive</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&amp;family=Poppins:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+.slide-container {
+    width: 1280px;
+    min-height: 720px;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.header {
+    padding: 40px 60px 20px;
+}
+.title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 8px 0 0 0;
+}
+.content {
+    flex: 1;
+    padding: 20px 60px 40px;
+    display: flex;
+    flex-direction: column;
+}
+.key-points-section {
+    background-color: rgba(30, 41, 59, 0.6);
+    border: 2px solid #334155;
+    border-radius: 16px;
+    padding: 32px 40px;
+    margin-bottom: 24px;
+}
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #2563eb;
+}
+.section-icon {
+    font-size: 28px;
+    color: #2563eb;
+}
+.section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.points-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 32px;
+}
+.point-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.point-icon {
+    color: #10b981;
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.point-text {
+    font-size: 15px;
+    color: #e2e8f0;
+    margin: 0;
+    line-height: 1.6;
+}
+.next-steps-section {
+    background-color: rgba(37, 99, 235, 0.15);
+    border: 2px solid #2563eb;
+    border-radius: 12px;
+    padding: 24px 32px;
+}
+.next-steps-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.next-steps-icon {
+    font-size: 24px;
+    color: #2563eb;
+}
+.next-steps-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+.next-steps-list {
+    display: flex;
+    gap: 32px;
+}
+.next-step-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: rgba(15, 23, 42, 0.6);
+    padding: 16px 20px;
+    border-radius: 8px;
+    border-left: 3px solid #2563eb;
+}
+.next-step-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+.next-step-text {
+    font-size: 14px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<div class="slide-container">
+<div class="header">
+<h1 class="title"><p>Conclusion Exécutive</p></h1>
+<div class="subtitle"><p>Synthèse des points clés de la plateforme</p></div>
+</div>
+<div class="content">
+<div class="key-points-section">
+<div class="section-header">
+<div class="section-icon"><i class="fas fa-check-double"></i></div>
+<div class="section-title"><p>Points Clés de la Solution</p></div>
+</div>
+<div class="points-grid">
+<div class="point-item">
+<div class="point-icon"><i class="fas fa-check-circle"></i></div>
+<div class="point-text"><p><strong>Architecture scalable</strong> : microservices découplés, event-driven, haute disponibilité</p></div>
+</div>
+<div class="point-item">
+<div class="point-icon"><i class="fas fa-check-circle"></i></div>
+<div class="point-text"><p><strong>Multi-tenant robuste</strong> : isolation complète, sécurité Keycloak/JWT/RBAC</p></div>
+</div>
+<div class="point-item">
+<div class="point-icon"><i class="fas fa-check-circle"></i></div>
+<div class="point-text"><p><strong>Pipeline temps réel</strong> : Kafka event-driven, traitement asynchrone, résilience garantie</p></div>
+</div>
+<div class="point-item">
+<div class="point-icon"><i class="fas fa-check-circle"></i></div>
+<div class="point-text"><p><strong>Geofencing précis</strong> : détection entrée/sortie, alertes intelligentes, notifications fiables</p></div>
+</div>
+<div class="point-item">
+<div class="point-icon"><i class="fas fa-check-circle"></i></div>
+<div class="point-text"><p><strong>Infrastructure Kubernetes</strong> : HA, autoscaling HPA, observabilité complète</p></div>
+</div>
+<div class="point-item">
+<div class="point-icon"><i class="fas fa-check-circle"></i></div>
+<div class="point-text"><p><strong>Roadmap claire</strong> : planification 12 mois, modèle économique SaaS modulable</p></div>
+</div>
+</div>
+</div>
+<div class="next-steps-section">
+<div class="next-steps-header">
+<div class="next-steps-icon"><i class="fas fa-rocket"></i></div>
+<div class="next-steps-title"><p>Prochaines Étapes</p></div>
+</div>
+<div class="next-steps-list">
+<div class="next-step-item">
+<div class="next-step-number"><p>1</p></div>
+<div class="next-step-text"><p><strong>POC / Pilote</strong> : Déploiement initial avec premiers clients beta</p></div>
+</div>
+<div class="next-step-item">
+<div class="next-step-number"><p>2</p></div>
+<div class="next-step-text"><p><strong>Onboarding</strong> : Intégration des premiers tenants et retours utilisateurs</p></div>
+</div>
+<div class="next-step-item">
+<div class="next-step-number"><p>3</p></div>
+<div class="next-step-text"><p><strong>Scale &amp; Growth</strong> : Expansion commerciale et amélioration continue</p></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
