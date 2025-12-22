@@ -10,6 +10,12 @@ const errorMiddleware = require('./middlewares/errors');
 
 const app = express();
 
+
+app.get('/', function(req, res) {
+    res.set('Content-Type', 'text/html; charset=UTF-8')
+    res.send('Hello World!')
+});
+
 /* ======================
    Middlewares
 ====================== */
@@ -48,5 +54,6 @@ if (process.env.NODE_ENV === 'PRODUCTION') {
    Error handler
 ====================== */
 app.use(errorMiddleware);
+
 
 module.exports = app;
