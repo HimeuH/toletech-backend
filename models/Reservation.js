@@ -1,15 +1,23 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const reservationSchema = new mongoose.Schema({
-  storage: { type: mongoose.Schema.Types.ObjectId, ref: 'Storage' },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  reservedFrom: Date,
-  reservedTo: Date,
+const Reservation = sequelize.define('Reservation', {
+  reservedFrom: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+
+  reservedTo: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+
   status: {
-    type: String,
-    enum: ['EN_ATTENTE', 'CONFIRMÉ', 'ANNULÉ'],
-    default: 'EN_ATTENTE'
+    type: DataTypes.ENUM('EN_ATTENTE', 'CONFIRMÉ', 'ANNULÉ'),
+    defaultValue: 'EN_ATTENTE'
   }
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
 
-module.exports = mongoose.model('Reservation', reservationSchema);
+module.exports = Reservation;
