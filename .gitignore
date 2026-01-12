@@ -19,6 +19,7 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.database.sqlite
 
 # Runtime data
 pids
