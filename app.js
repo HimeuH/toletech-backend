@@ -32,10 +32,10 @@ const reservationRoutes = require('./routes/reservation.routes');
 const storageRoutes = require('./routes/storage.routes');
 const billingRoutes = require('./routes/billing.routes');
 
-app.use('/api/v1/user', userRoutes);
-app.use('/api/v1/reservation', reservationRoutes);
-app.use('/api/v1/storage', storageRoutes);
-app.use('/api/v1/billing', billingRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/reservations', reservationRoutes);
+app.use('/api/v1/storages', storageRoutes);
+app.use('/api/v1/billings', billingRoutes);
 
 /* ======================
    Frontend (PROD)
