@@ -1,33 +1,39 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const mongoose = require('mongoose');
 
-const Billing = sequelize.define('Billing', {
-  totalAmount: {
-    type: DataTypes.FLOAT,
-    allowNull: false
+const billingSchema = new mongoose.Schema(
+  {
+    reservation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Reservation'
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    storage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Storage'
+    },
+    totalAmount: {
+      type: Number,
+      required: true
+    },
+    currency: {
+      type: String,
+      default: 'XOF'
+    },
+    days: {
+      type: Number,
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['PENDING', 'PAID', 'CANCELLED'],
+      default: 'PENDING'
+    },
+    paidAt: Date
   },
+  { timestamps: true }
+);
 
-  currency: {
-    type: DataTypes.STRING,
-    defaultValue: 'XOF'
-  },
-
-  days: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
-
-  status: {
-    type: DataTypes.ENUM('PENDING', 'PAID', 'CANCELLED'),
-    defaultValue: 'PENDING'
-  },
-
-  paidAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  }
-}, {
-  timestamps: true
-});
-
-module.exports = Billing;
+module.exports = mongoose.model('Billing', billingSchema);

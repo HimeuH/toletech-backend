@@ -1,125 +1,13 @@
 {
   "info": {
-    "name": "AgriStorage API",
-    "description": "Full API Collection for User Auth, Storage, Reservation",
+    "_postman_id": "12345678-1234-1234-1234-123456789abc",
+    "name": "Toletech Full API",
+    "description": "Full API Collection for Users, Storages, Reservations",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "AUTH",
-      "item": [
-        {
-          "name": "Register User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@test.com\",\n  \"password\": \"12345678\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Login User",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@test.com\",\n  \"password\": \"12345678\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Forgot Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@test.com\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/search?query=john",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "search"
-              ],
-              "query": [
-                {
-                  "key": "query",
-                  "value": "john"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reset Password",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"12345678\",\n  \"confirmPassword\": \"12345678\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "USERS CRUD",
+      "name": "USERS",
       "item": [
         {
           "name": "Create User",
@@ -128,12 +16,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@test.com\",\n  \"password\": \"123456\",\n  \"phone\": \"771234567\",\n  \"role\": \"AGRICULTEUR\"\n}"
+              "raw": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@test.com\",\n  \"password\": \"123456\",\n  \"phone\": \"771234567\",\n  \"role\": \"AGRICULTEUR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users",
@@ -144,12 +38,14 @@
                 "users"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get All Users",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/users",
               "host": [
@@ -159,12 +55,14 @@
                 "users"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Search Users",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/search?query=alice",
               "host": [
@@ -181,12 +79,14 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get User By ID",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
               "host": [
@@ -197,7 +97,8 @@
                 "{{userId}}"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Update User",
@@ -206,12 +107,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Alice Updated\",\n  \"email\": \"alice.new@test.com\"\n}"
+              "raw": "{\n  \"name\": \"Alice Updated\",\n  \"email\": \"alice.new@test.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
@@ -223,12 +130,14 @@
                 "{{userId}}"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete User",
           "request": {
             "method": "DELETE",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
               "host": [
@@ -239,12 +148,13 @@
                 "{{userId}}"
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "STORAGE",
+      "name": "STORAGES",
       "item": [
         {
           "name": "Create Storage",
@@ -253,12 +163,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"owner\": \"{{userId}}\",\n  \"location\": \"Dakar\",\n  \"capacity\": 500,\n  \"capacityUnit\": \"M2\",\n  \"availableFrom\": \"2026-02-01\",\n  \"availableTo\": \"2026-03-15\",\n  \"productType\": \"Mil\",\n  \"isAvailable\": true\n}"
+              "raw": "{\n  \"owner\": \"{{userId}}\",\n  \"location\": \"Dakar Plateau\",\n  \"capacity\": 200,\n  \"capacityUnit\": \"M2\",\n  \"availableFrom\": \"2026-02-01T00:00:00Z\",\n  \"availableTo\": \"2026-05-01T00:00:00Z\",\n  \"productType\": \"Cereales\",\n  \"isAvailable\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/storages",
@@ -269,12 +185,14 @@
                 "storages"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Get All Storage",
+          "name": "Get All Storages",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/storages",
               "host": [
@@ -284,14 +202,16 @@
                 "storages"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Search Storage",
+          "name": "Search Storages",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/storages/search?location=dakar&productType=mil",
+              "raw": "{{baseUrl}}/storages/search?location=dakar&productType=cereales",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -306,16 +226,18 @@
                 },
                 {
                   "key": "productType",
-                  "value": "mil"
+                  "value": "cereales"
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Storage By ID",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/storages/{{storageId}}",
               "host": [
@@ -326,7 +248,8 @@
                 "{{storageId}}"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Update Storage",
@@ -335,12 +258,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"capacity\": 700,\n  \"isAvailable\": false\n}"
+              "raw": "{\n  \"capacity\": 300,\n  \"isAvailable\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/storages/{{storageId}}",
@@ -352,12 +281,14 @@
                 "{{storageId}}"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete Storage",
           "request": {
             "method": "DELETE",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/storages/{{storageId}}",
               "host": [
@@ -368,7 +299,8 @@
                 "{{storageId}}"
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -382,12 +314,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storage\": \"{{storageId}}\",\n  \"user\": \"{{userId}}\",\n  \"reservedFrom\": \"2026-02-10\",\n  \"reservedTo\": \"2026-03-01\",\n  \"status\": \"EN_ATTENTE\"\n}"
+              "raw": "{\n  \"storage\": \"{{storageId}}\",\n  \"user\": \"{{userId}}\",\n  \"reservedFrom\": \"2026-02-10\",\n  \"reservedTo\": \"2026-03-01\",\n  \"status\": \"EN_ATTENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/reservations",
@@ -398,12 +336,14 @@
                 "reservations"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get All Reservations",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/reservations",
               "host": [
@@ -413,12 +353,14 @@
                 "reservations"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Search Reservations",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/reservations/search?status=EN_ATTENTE",
               "host": [
@@ -435,12 +377,14 @@
                 }
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Reservation By ID",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/reservations/{{reservationId}}",
               "host": [
@@ -451,7 +395,8 @@
                 "{{reservationId}}"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Update Reservation",
@@ -460,12 +405,18 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"CONFIRMÉ\"\n}"
+              "raw": "{\n  \"status\": \"CONFIRMÉ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/reservations/{{reservationId}}",
@@ -477,12 +428,14 @@
                 "{{reservationId}}"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete Reservation",
           "request": {
             "method": "DELETE",
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/reservations/{{reservationId}}",
               "host": [
@@ -493,7 +446,8 @@
                 "{{reservationId}}"
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     }
@@ -501,19 +455,23 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000/api/v1"
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
     },
     {
       "key": "userId",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "storageId",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "reservationId",
-      "value": ""
+      "value": "",
+      "type": "string"
     }
   ]
 }
