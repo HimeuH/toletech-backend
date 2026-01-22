@@ -6,6 +6,8 @@ exports.createStorage = async (req, res) => {
     const storage = new Storage(req.body);
     const saved = await storage.save();
     res.status(201).json(saved);
+    console.log("Storage created successfully");
+    
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
