@@ -1,20 +1,13 @@
 require('dotenv').config({ path: './config/config.env' });
 
 const app = require('./app');
-const { sequelize } = require('./models');
+const connectDB = require('./utils/db');
 
 const PORT = process.env.PORT || 8080;
 
-/* ======================
-   Database Connection
-====================== */
 const startServer = async () => {
   try {
-    await sequelize.authenticate();
-    console.log('✅ SQLite database connected');
-
-    await sequelize.sync({ alter: true });
-    console.log('✅ Models synchronized');
+    await connectDB();
 
     const server = app.listen(PORT, () => {
       console.log(
@@ -22,14 +15,10 @@ const startServer = async () => {
       );
     });
 
-    /* ======================
-       Unhandled Rejections
-    ====================== */
     process.on('unhandledRejection', (err) => {
       console.error(`❌ Unhandled Rejection: ${err.message}`);
       server.close(() => process.exit(1));
     });
-
   } catch (error) {
     console.error('❌ Database connection failed:', error);
     process.exit(1);
@@ -38,9 +27,6 @@ const startServer = async () => {
 
 startServer();
 
-/* ======================
-   Uncaught Exceptions
-====================== */
 process.on('uncaughtException', (err) => {
   console.error(`❌ Uncaught Exception: ${err.message}`);
   process.exit(1);

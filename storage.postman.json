@@ -1,143 +1,276 @@
 {
   "info": {
-    "name": "Storages API",
-    "description": "Collection de requêtes pour gérer les storages",
+    "name": "Toletech Full API",
+    "description": "Full API Collection for Users, Storages, Reservations",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Create Storage",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"owner\": \"{{userId}}\",\n  \"location\": \"Dakar Plateau\",\n  \"capacity\": 200,\n  \"availableFrom\": \"2025-09-01T00:00:00Z\",\n  \"availableTo\": \"2025-12-31T23:59:59Z\",\n  \"productType\": \"Céréales\",\n  \"isAvailable\": true\n}"
-        },
-        "url": { "raw": "{{baseUrl}}/storages", "host": ["{{baseUrl}}"], "path": ["storages"] }
-      },
-      "response": [
+      "name": "USERS",
+      "item": [
         {
-          "code": 201,
-          "name": "Created",
-          "body": "{\n  \"_id\": \"64d3a0d12345abcd6789ef01\",\n  \"owner\": \"{{userId}}\",\n  \"location\": \"Dakar Plateau\",\n  \"capacity\": 200,\n  \"availableFrom\": \"2025-09-01T00:00:00Z\",\n  \"availableTo\": \"2025-12-31T23:59:59Z\",\n  \"productType\": \"Céréales\",\n  \"isAvailable\": true,\n  \"createdAt\": \"2025-08-25T14:00:00Z\",\n  \"updatedAt\": \"2025-08-25T14:00:00Z\"\n}"
-        }
-      ]
-    },
-    {
-      "name": "Get All Storages",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "{{baseUrl}}/storages", "host": ["{{baseUrl}}"], "path": ["storages"] }
-      },
-      "response": [
-        {
-          "code": 200,
-          "name": "OK",
-          "body": "[ { \"_id\": \"64d3a0d12345abcd6789ef01\", \"location\": \"Dakar Plateau\", \"capacity\": 200, \"productType\": \"Céréales\" } ]"
-        }
-      ]
-    },
-    {
-      "name": "Get Storage by ID",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "{{baseUrl}}/storages/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}"] }
-      },
-      "response": [
-        {
-          "code": 200,
-          "name": "OK",
-          "body": "{ \"_id\": \"{{storageId}}\", \"location\": \"Dakar Plateau\", \"capacity\": 200 }"
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@test.com\",\n  \"password\": \"123456\",\n  \"phone\": \"771234567\",\n  \"role\": \"AGRICULTEUR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
         },
         {
-          "code": 404,
-          "name": "Not Found",
-          "body": "{ \"message\": \"Storage not found\" }"
-        }
-      ]
-    },
-    {
-      "name": "Update Storage",
-      "request": {
-        "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"capacity\": 300,\n  \"isAvailable\": false\n}"
-        },
-        "url": { "raw": "{{baseUrl}}/storages/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}"] }
-      },
-      "response": [
-        {
-          "code": 200,
-          "name": "Updated",
-          "body": "{ \"_id\": \"{{storageId}}\", \"capacity\": 300, \"isAvailable\": false }"
-        }
-      ]
-    },
-    {
-      "name": "Delete Storage",
-      "request": {
-        "method": "DELETE",
-        "url": { "raw": "{{baseUrl}}/storages/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}"] }
-      },
-      "response": [
-        {
-          "code": 200,
-          "name": "Deleted",
-          "body": "{ \"message\": \"Storage deleted successfully\" }"
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            }
+          }
         },
         {
-          "code": 404,
-          "name": "Not Found",
-          "body": "{ \"message\": \"Storage not found\" }"
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/search?query=alice",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "search"],
+              "query": [{ "key": "query", "value": "alice" }]
+            }
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Updated\",\n  \"email\": \"alice.new@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
         }
       ]
     },
     {
-      "name": "Get Storages by Owner",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "{{baseUrl}}/storages/owner/{{userId}}", "host": ["{{baseUrl}}"], "path": ["storages", "owner", "{{userId}}"] }
-      },
-      "response": [{ "code": 200, "body": "[ { \"_id\": \"64d3a0d12345abcd6789ef01\", \"owner\": \"{{userId}}\" } ]" }]
-    },
-    {
-      "name": "Get Storages by Status",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "{{baseUrl}}/storages/status/{{status}}", "host": ["{{baseUrl}}"], "path": ["storages", "status", "{{status}}"] }
-      },
-      "response": [
-        { "code": 200, "body": "[ { \"_id\": \"64d3a0d12345abcd6789ef01\", \"isAvailable\": true } ]" }
+      "name": "STORAGES",
+      "item": [
+        {
+          "name": "Create Storage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"owner\": \"{{userId}}\",\n  \"location\": \"Dakar Plateau\",\n  \"capacity\": 200,\n  \"capacityUnit\": \"M2\",\n  \"availableFrom\": \"2026-02-01T00:00:00Z\",\n  \"availableTo\": \"2026-05-01T00:00:00Z\",\n  \"productType\": \"Cereales\",\n  \"isAvailable\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storages",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages"]
+            }
+          }
+        },
+        {
+          "name": "Get All Storages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/storages",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages"]
+            }
+          }
+        },
+        {
+          "name": "Search Storages",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/storages/search?location=dakar&productType=cereales",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages", "search"],
+              "query": [
+                { "key": "location", "value": "dakar" },
+                { "key": "productType", "value": "cereales" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Storage By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/storages/{{storageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages", "{{storageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Storage",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 300,\n  \"isAvailable\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storages/{{storageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages", "{{storageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Storage",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/storages/{{storageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages", "{{storageId}}"]
+            }
+          }
+        }
       ]
     },
     {
-      "name": "Search Storages",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/storages/search?location=Dakar&productType=Céréales&from=2025-09-01&to=2025-12-31",
-          "host": ["{{baseUrl}}"],
-          "path": ["storages", "search"],
-          "query": [
-            { "key": "location", "value": "Dakar" },
-            { "key": "productType", "value": "Céréales" },
-            { "key": "from", "value": "2025-09-01" },
-            { "key": "to", "value": "2025-12-31" }
-          ]
+      "name": "RESERVATIONS",
+      "item": [
+        {
+          "name": "Create Reservation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storage\": \"{{storageId}}\",\n  \"user\": \"{{userId}}\",\n  \"reservedFrom\": \"2026-02-10\",\n  \"reservedTo\": \"2026-03-01\",\n  \"status\": \"EN_ATTENTE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations"]
+            }
+          }
+        },
+        {
+          "name": "Get All Reservations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations"]
+            }
+          }
+        },
+        {
+          "name": "Search Reservations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reservations/search?status=EN_ATTENTE",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "search"],
+              "query": [{ "key": "status", "value": "EN_ATTENTE" }]
+            }
+          }
+        },
+        {
+          "name": "Get Reservation By ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reservations/{{reservationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "{{reservationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Reservation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMÉ\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reservations/{{reservationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "{{reservationId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Reservation",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/reservations/{{reservationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "{{reservationId}}"]
+            }
+          }
         }
-      },
-      "response": [
-        { "code": 200, "body": "[ { \"location\": \"Dakar\", \"productType\": \"Céréales\", \"isAvailable\": true } ]" }
       ]
     }
   ],
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000/api" },
-    { "key": "userId", "value": "64d39f912345abcd6789ef00" },
-    { "key": "storageId", "value": "64d3a0d12345abcd6789ef01" },
-    { "key": "status", "value": "true" }
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "userId", "value": "" },
+    { "key": "storageId", "value": "" },
+    { "key": "reservationId", "value": "" }
   ]
 }

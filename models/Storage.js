@@ -1,45 +1,44 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const mongoose = require('mongoose');
 
-const Storage = sequelize.define('Storage', {
-  location: {
-    type: DataTypes.STRING,
-    allowNull: false
+const storageSchema = new mongoose.Schema(
+  {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    location: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    capacity: {
+      type: Number,
+      required: true
+    },
+    capacityUnit: {
+      type: String,
+      enum: ['M2', 'HA', 'L', 'M3'],
+      required: true
+    },
+    availableFrom: {
+      type: Date,
+      required: true
+    },
+    availableTo: {
+      type: Date,
+      required: true
+    },
+    costPerKgPerDay: {
+      type: Number,
+      required: true
+    },
+    productType: String,
+    isAvailable: {
+      type: Boolean,
+      default: true
+    }
   },
+  { timestamps: true }
+);
 
-  capacity: {
-    type: DataTypes.FLOAT,
-    allowNull: false
-  },
-
-  capacityUnit: {
-    type: DataTypes.ENUM('M2', 'HA', 'L', 'M3'),
-    allowNull: false
-  },
-
-  availableFrom: {
-    type: DataTypes.DATE,
-    allowNull: false
-  },
-
-  availableTo: {
-    type: DataTypes.DATE,
-    allowNull: false
-  },
-
-  costPerKgPerDay: {
-    type: DataTypes.FLOAT,
-    allowNull: false
-  },
-
-  productType: DataTypes.STRING,
-
-  isAvailable: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  }
-}, {
-  timestamps: true
-});
-
-module.exports = Storage;
+module.exports = mongoose.model('Storage', storageSchema);
