@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const fileUpload = require('express-fileupload');
 const path = require('path');
+const cors = require('cors');
 
 const errorMiddleware = require('./middlewares/errors');
 
@@ -23,6 +24,12 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(fileUpload());
+app.use(
+  cors({
+    origin: ['http://localhost:4200'],
+    credentials: true
+  })
+);
 
 /* ======================
    Routes
@@ -31,11 +38,13 @@ const userRoutes = require('./routes/user.routes');
 const reservationRoutes = require('./routes/reservation.routes');
 const storageRoutes = require('./routes/storage.routes');
 const billingRoutes = require('./routes/billing.routes');
+const authRoutes = require('./routes/auth.routes');
 
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/reservations', reservationRoutes);
 app.use('/api/v1/storages', storageRoutes);
 app.use('/api/v1/billings', billingRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 /* ======================
    Frontend (PROD)

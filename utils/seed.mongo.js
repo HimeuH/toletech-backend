@@ -51,6 +51,13 @@ const main = async () => {
         password: 'Password123!',
         phone: '+221770000004',
         role: 'AGENT'
+      },
+      {
+        name: 'Admin User',
+        email: 'admin@toletech.com',
+        password: 'Admin123!',
+        phone: '+221770000999',
+        role: 'ADMIN'
       }
     ]);
 
