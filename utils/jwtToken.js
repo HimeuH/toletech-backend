@@ -13,10 +13,13 @@ const sendToken = (user, statusCode, res) => {
     }
 
 
+    const safeUser = user.toObject ? user.toObject() : { ...user };
+    delete safeUser.password;
+
     res.status(statusCode).cookie('token', token, options).json({
         success: true,
         token,
-        user
+        user: safeUser
     })
 
 }
