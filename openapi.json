@@ -122,7 +122,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       },
       "post": {
         "summary": "Create user",
@@ -157,7 +166,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       }
     },
     "/users/search": {
@@ -197,7 +215,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       }
     },
     "/users/{id}": {
@@ -234,7 +261,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       },
       "put": {
         "summary": "Update user",
@@ -289,7 +325,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       },
       "delete": {
         "summary": "Delete user",
@@ -317,7 +362,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       }
     },
     "/storages": {
@@ -382,7 +436,18 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "PROPRIETAIRE",
+          "TRANSFORMATEUR",
+          "AGENT",
+          "ADMIN"
+        ]
       }
     },
     "/storages/search": {
@@ -470,7 +535,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Storage"
+                  "$ref": "#/components/schemas/StorageDetail"
                 }
               }
             }
@@ -540,7 +605,18 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "PROPRIETAIRE",
+          "TRANSFORMATEUR",
+          "AGENT",
+          "ADMIN"
+        ]
       },
       "delete": {
         "summary": "Delete storage",
@@ -568,7 +644,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN"
+        ]
       }
     },
     "/reservations": {
@@ -598,7 +682,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN",
+          "AGENT"
+        ]
       },
       "post": {
         "summary": "Create reservation",
@@ -633,7 +726,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "AGRICULTEUR"
+        ]
       }
     },
     "/reservations/search": {
@@ -694,7 +795,19 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "AGRICULTEUR",
+          "PROPRIETAIRE",
+          "TRANSFORMATEUR",
+          "AGENT",
+          "ADMIN"
+        ]
       }
     },
     "/reservations/{id}": {
@@ -716,7 +829,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Reservation"
+                  "$ref": "#/components/schemas/ReservationDetail"
                 }
               }
             }
@@ -731,7 +844,17 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "OWNER",
+          "STORAGE_OWNER",
+          "ADMIN"
+        ]
       },
       "put": {
         "summary": "Update reservation",
@@ -786,7 +909,16 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "OWNER",
+          "ADMIN"
+        ]
       },
       "delete": {
         "summary": "Delete reservation",
@@ -814,7 +946,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN"
+        ]
       }
     },
     "/auth/password/forgot": {
@@ -935,7 +1075,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/auth/password/update": {
@@ -972,7 +1117,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/auth/me/update": {
@@ -1009,7 +1159,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/auth/logout": {
@@ -1026,7 +1181,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/auth/admin/users": {
@@ -1063,7 +1223,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     },
     "/auth/admin/user/{id}": {
@@ -1120,7 +1285,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       },
       "put": {
         "summary": "Admin: Update user",
@@ -1185,7 +1355,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       },
       "delete": {
         "summary": "Admin: Delete user",
@@ -1240,7 +1415,88 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/storages/my": {
+      "get": {
+        "summary": "Get my storages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Storage"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "AUTHENTICATED"
+        ]
+      }
+    },
+    "/reservations/my": {
+      "get": {
+        "summary": "Get my reservations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reservation"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-roles": [
+          "AGRICULTEUR"
+        ]
       }
     }
   },
@@ -1298,9 +1554,6 @@
         "properties": {
           "success": {
             "type": "boolean"
-          },
-          "token": {
-            "type": "string"
           },
           "user": {
             "$ref": "#/components/schemas/User"
@@ -1739,6 +1992,102 @@
             "type": "string"
           }
         }
+      },
+      "StorageDetail": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/User"
+          },
+          "location": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "number"
+          },
+          "capacityUnit": {
+            "type": "string",
+            "enum": [
+              "M2",
+              "HA",
+              "L",
+              "M3"
+            ]
+          },
+          "availableFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "availableTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "costPerKgPerDay": {
+            "type": "number"
+          },
+          "productType": {
+            "type": "string"
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReservationDetail": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageDetail"
+          },
+          "reservedFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reservedTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "EN_ATTENTE",
+              "CONFIRMÉ",
+              "ANNULÉ"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token"
       }
     }
   }
