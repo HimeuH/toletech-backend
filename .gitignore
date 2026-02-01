@@ -62,3 +62,4 @@ Thumbs.db
 # Uploads / temp files (if any)
 uploads/
 public/uploads/
+rbac.json

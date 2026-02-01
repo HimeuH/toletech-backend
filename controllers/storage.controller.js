@@ -14,7 +14,17 @@ exports.createStorage = async (req, res) => {
 // Get all storages
 exports.getAllStorages = async (req, res) => {
   try {
-    const storages = await Storage.find().populate('owner');
+    const storages = await Storage.find();
+    res.status(200).json(storages);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get storages for current user (owner)
+exports.getMyStorages = async (req, res) => {
+  try {
+    const storages = await Storage.find({ owner: req.user.id });
     res.status(200).json(storages);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -35,6 +45,13 @@ exports.getStorageById = async (req, res) => {
 // Update storage
 exports.updateStorage = async (req, res) => {
   try {
+    const storage = await Storage.findById(req.params.id);
+    if (!storage) return res.status(404).json({ message: 'Storage not found' });
+
+    if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
     const updated = await Storage.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: 'Storage not found' });
     res.status(200).json(updated);
@@ -45,7 +62,7 @@ exports.updateStorage = async (req, res) => {
 
 exports.getStorageByOwner = async (req, res) => {
   try {
-    const storages = await Storage.find({ owner: req.params.id }).populate('owner');
+    const storages = await Storage.find({ owner: req.params.id });
     res.status(200).json(storages);
   } catch (error) {
     res.status(404).json({ message: error.message });
@@ -55,7 +72,7 @@ exports.getStorageByOwner = async (req, res) => {
 
 exports.getStorageByStatus = async (req, res) => {
   try {
-    const storages = await Storage.find({ isAvailable: req.params.status }).populate('owner');
+    const storages = await Storage.find({ isAvailable: req.params.status });
     res.status(200).json(storages);
   } catch (error) {
     res.status(404).json({ message: error.message });
@@ -65,6 +82,13 @@ exports.getStorageByStatus = async (req, res) => {
 // Delete storage
 exports.deleteStorage = async (req, res) => {
   try {
+    const storage = await Storage.findById(req.params.id);
+    if (!storage) return res.status(404).json({ message: 'Storage not found' });
+
+    if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
     const deleted = await Storage.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: 'Storage not found' });
     res.status(200).json({ message: 'Storage deleted successfully' });
@@ -88,7 +112,7 @@ exports.searchStorages = async (req, res) => {
       }),
     };
 
-    const results = await Storage.find(query).populate('owner');
+    const results = await Storage.find(query);
     res.status(200).json(results);
   } catch (error) {
     res.status(500).json({ message: error.message });
