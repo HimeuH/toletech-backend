@@ -2,24 +2,34 @@ const Reservation = require('../models/Reservation');
 
 exports.createReservation = async (req, res) => {
   // const reservation = await Reservation.create({ ...req.body, user: req.user.id });
-
-  const reservation = await Reservation.create(req.body);
+  const reservation = await Reservation.create({
+    ...req.body,
+    user: req.user.id
+  });
 
   res.status(201).json(reservation);
 };
 
 
 exports.getReservationByStatus = async (req, res) => {
-  const reservations = await Reservation.find({ status: req.params.status }).populate('storage');
+  const reservations = await Reservation.find({ status: req.params.status });
   res.json(reservations);
 }
 
 // Get all reservations
 exports.getAllReservations = async (req, res) => {
   try {
-    const reservations = await Reservation.find()
-      .populate('user', 'name email')
-      .populate('storage');
+    const reservations = await Reservation.find();
+    res.json(reservations);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Get reservations for current user
+exports.getMyReservations = async (req, res) => {
+  try {
+    const reservations = await Reservation.find({ user: req.user.id });
     res.json(reservations);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -33,6 +43,18 @@ exports.updateReservation = async (req, res) => {
     let reservation = await Reservation.findById(id);
     if (!reservation) {
       return res.status(404).json({ message: "Reservation not found" });
+    }
+    if (req.user.role !== 'ADMIN' && reservation.user?.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    if (req.user.role !== 'ADMIN') {
+      if (reservation.status !== 'EN_ATTENTE') {
+        return res.status(403).json({ message: "Only pending reservations can be updated" });
+      }
+
+      if (updates.status && updates.status !== 'ANNULÉ') {
+        return res.status(403).json({ message: "Only admin can confirm reservations" });
+      }
     }
 
     if (updates.reservedFrom && updates.reservedTo) {
@@ -88,8 +110,16 @@ exports.getReservationById = async (req, res) => {
   try {
     const reservation = await Reservation.findById(req.params.id)
       .populate('user', 'name email')
-      .populate('storage');
+      .populate({ path: 'storage', populate: { path: 'owner', select: 'name email' } });
     if (!reservation) return res.status(404).json({ error: 'Not found' });
+
+    const isOwner = reservation.user?.toString() === req.user.id;
+    const isStorageOwner = reservation.storage?.owner?.toString() === req.user.id;
+
+    if (req.user.role !== 'ADMIN' && !isOwner && !isStorageOwner) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     res.json(reservation);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -112,6 +142,12 @@ exports.getReservationById = async (req, res) => {
 // Delete reservation
 exports.deleteReservation = async (req, res) => {
   try {
+    const reservation = await Reservation.findById(req.params.id);
+    if (!reservation) return res.status(404).json({ error: 'Not found' });
+    if (req.user.role !== 'ADMIN' && reservation.user?.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const deleted = await Reservation.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted successfully' });
@@ -126,13 +162,22 @@ exports.searchReservations = async (req, res) => {
     const { user, storage, status } = req.query;
     const query = {};
 
-    if (user) query.user = user;
-    if (storage) query.storage = storage;
     if (status) query.status = status;
 
-    const reservations = await Reservation.find(query)
-      .populate('user', 'name')
-      .populate('storage');
+    if (req.user.role === 'AGRICULTEUR') {
+      query.user = req.user.id;
+      if (storage) query.storage = storage;
+    } else if (req.user.role === 'PROPRIETAIRE' || req.user.role === 'TRANSFORMATEUR') {
+      const ownedStorages = await Storage.find({ owner: req.user.id }).select('_id');
+      query.storage = { $in: ownedStorages.map((s) => s._id) };
+    } else if (req.user.role === 'AGENT' || req.user.role === 'ADMIN') {
+      if (user) query.user = user;
+      if (storage) query.storage = storage;
+    } else {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const reservations = await Reservation.find(query);
 
     res.json(reservations);
   } catch (err) {
