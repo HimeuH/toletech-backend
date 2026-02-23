@@ -2,15 +2,20 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth');
+const validate = require('../middlewares/validate');
+const { registerRules, loginRules } = require('../validators/auth.validators');
 
-router.post('/register', authController.registerUser);
-router.post('/login', authController.loginUser);
+router.post('/register', registerRules, validate, authController.registerUser);
+router.post('/login', loginRules, validate, authController.loginUser);
+router.post('/verify-otp', authController.verifyOtp);
+router.post('/resend-otp', authController.resendOtp);
 router.post('/password/forgot', authController.forgotPassword);
 router.put('/password/reset/:token', authController.resetPassword);
 
 router.get('/me', isAuthenticatedUser, authController.getUserProfile);
 router.put('/password/update', isAuthenticatedUser, authController.updatePassword);
 router.put('/me/update', isAuthenticatedUser, authController.updateProfile);
+router.post('/verify-phone-change', isAuthenticatedUser, authController.verifyPhoneChange);
 router.get('/logout', authController.logout);
 
 router.get('/admin/users', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.allUsers);
