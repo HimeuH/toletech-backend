@@ -4,13 +4,39 @@ const Billing = require('../models/Billing');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
+const notify = require('../utils/notify');
 
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
+  // BE-024: agent proxy — reserve on behalf of a farmer
+  let userId = req.user.id;
+  if (req.user.role === 'AGENT' && req.body.onBehalfOf) {
+    const User = require('../models/User');
+    const farmer = await User.findById(req.body.onBehalfOf);
+    if (!farmer || farmer.role !== 'AGRICULTEUR') {
+      return next(new ErrorHandler('Invalid farmer specified for onBehalfOf', 400));
+    }
+    userId = req.body.onBehalfOf;
+  }
+
   const reservation = await Reservation.create({
     ...req.body,
-    user: req.user.id,
+    user: userId,
+    createdBy: req.user.id,
     statusHistory: [{ status: 'EN_ATTENTE', changedBy: req.user.id }]
   });
+
+  // BE-020: notify storage owner of new request
+  const storage = await Storage.findById(reservation.storage).select('owner name');
+  if (storage && storage.owner) {
+    await notify(
+      storage.owner,
+      'RESERVATION_REQUESTED',
+      'Nouvelle demande de réservation',
+      `${req.user.name} a demandé une réservation pour ${storage.name || 'votre entrepôt'}`,
+      { reservationId: reservation._id, storageId: storage._id }
+    ).catch(err => console.error('Notification error:', err.message));
+  }
+
   res.status(201).json({ success: true, data: reservation });
 });
 
@@ -133,6 +159,20 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
 
   await reservation.save();
 
+  // BE-020: notify owner when farmer cancels
+  if (updates.status === 'ANNULÉ') {
+    const storage = await Storage.findById(reservation.storage).select('owner name');
+    if (storage && storage.owner) {
+      await notify(
+        storage.owner,
+        'RESERVATION_CANCELLED',
+        'Réservation annulée',
+        `Une réservation pour ${storage.name || 'votre entrepôt'} a été annulée`,
+        { reservationId: reservation._id, storageId: storage._id }
+      ).catch(err => console.error('Notification error:', err.message));
+    }
+  }
+
   // BE-017: Auto-billing on confirmation
   if (updates.status === 'CONFIRMÉ') {
     const existingBilling = await Billing.findOne({ reservation: reservation._id });
@@ -174,6 +214,19 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
   });
 
   await reservation.save();
+
+  // BE-020: notify farmer of approval/rejection (with SMS for critical events — BE-021)
+  const notifType = reservation.status === 'APPROUVÉ' ? 'RESERVATION_APPROVED' : 'RESERVATION_REJECTED';
+  const notifTitle = reservation.status === 'APPROUVÉ' ? 'Réservation approuvée' : 'Réservation rejetée';
+  const notifMessage = message || `Votre réservation a été ${reservation.status.toLowerCase()}`;
+  await notify(
+    reservation.user,
+    notifType,
+    notifTitle,
+    notifMessage,
+    { reservationId: reservation._id },
+    { sms: true }
+  ).catch(err => console.error('Notification error:', err.message));
 
   res.status(200).json({ success: true, message: `Reservation ${reservation.status}`, data: reservation });
 });
