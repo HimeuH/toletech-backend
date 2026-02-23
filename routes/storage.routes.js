@@ -2,16 +2,15 @@ const express = require('express');
 const router = express.Router();
 const storageController = require('../controllers/storage.controller');
 const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth');
-
-// router.post('/', authMiddleware, storageController.createStorage);
-// router.get('/', storageController.getAllStorage);
-// router.get('/search', storageController.searchStorage);
-
+const validate = require('../middlewares/validate');
+const { createStorageRules } = require('../validators/storage.validators');
 
 router.post(
   '/',
   isAuthenticatedUser,
   authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT', 'ADMIN'),
+  createStorageRules,
+  validate,
   storageController.createStorage
 );
 router.get('/my', isAuthenticatedUser, storageController.getMyStorages);
@@ -24,6 +23,7 @@ router.put(
   authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT', 'ADMIN'),
   storageController.updateStorage
 );
-router.delete('/:id', isAuthenticatedUser, authorizeRoles('ADMIN'), storageController.deleteStorage);
+router.delete('/:id', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'ADMIN'), storageController.deleteStorage);
+router.delete('/:id/photos', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'ADMIN'), storageController.deleteStoragePhoto);
 
 module.exports = router;
