@@ -1,5 +1,8 @@
 require('dotenv').config({ path: './config/config.env' });
 
+// Initialize Cloudinary
+require('./config/cloudinary');
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
@@ -62,7 +65,7 @@ app.use(generalLimiter);
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(fileUpload());
+app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
 app.use(
   cors({
     origin: ['http://localhost:4200'],
@@ -76,6 +79,7 @@ app.use(
 const userRoutes = require('./routes/user.routes');
 const reservationRoutes = require('./routes/reservation.routes');
 const storageRoutes = require('./routes/storage.routes');
+const storageSpaceRoutes = require('./routes/storageSpace.routes');
 const billingRoutes = require('./routes/billing.routes');
 const authRoutes = require('./routes/auth.routes');
 
@@ -86,6 +90,7 @@ app.use('/api/v1/auth/password/forgot', forgotPasswordLimiter);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/reservations', reservationRoutes);
 app.use('/api/v1/storages', storageRoutes);
+app.use('/api/v1/storages/:storageId/spaces', storageSpaceRoutes);
 app.use('/api/v1/billings', billingRoutes);
 app.use('/api/v1/auth', authRoutes);
 
