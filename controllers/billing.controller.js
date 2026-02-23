@@ -1,29 +1,28 @@
 const Billing = require('../models/Billing');
 const Reservation = require('../models/Reservation');
 const Storage = require('../models/Storage');
+const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
+const ErrorHandler = require('../utils/errorHandler');
 
+// Internal helper — called by reservation controller on confirmation
 exports.generateBilling = async (reservationId) => {
   const reservation = await Reservation.findById(reservationId)
     .populate('storage')
     .populate('user');
 
-  if (!reservation) throw new Error("Réservation introuvable");
+  if (!reservation) throw new Error('Réservation introuvable');
   if (reservation.status !== 'CONFIRMÉ')
-    throw new Error("La réservation doit être CONFIRMÉE avant facturation");
+    throw new Error('La réservation doit être CONFIRMÉE avant facturation');
 
   const storage = reservation.storage;
 
-  // Calcul du nombre de jours
   const start = new Date(reservation.reservedFrom);
   const end = new Date(reservation.reservedTo);
-
   const diffTime = Math.abs(end - start);
   const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  // Calcul du total
-  const totalAmount = days * storage.costPerKgPerDay;
+  const totalAmount = days * (storage.costPerKgPerDay || 0);
 
-  // Création de la facture
   const billing = await Billing.create({
     reservation: reservation._id,
     user: reservation.user._id,
@@ -35,49 +34,84 @@ exports.generateBilling = async (reservationId) => {
   return billing;
 };
 
-exports.updateBillingStatus = async (billingId, status) => {
+// GET /api/v1/billings — admin only
+exports.getAllBillings = catchAsyncErrors(async (req, res, next) => {
+  const billings = await Billing.find()
+    .populate('reservation')
+    .populate('user', 'name email')
+    .populate('storage', 'name location');
+  res.status(200).json({ success: true, data: billings, count: billings.length });
+});
 
-    if (!["PENDING", "PAID", "CANCELLED"].includes(status)) {
-        throw new Error('Statut de facture invalide');
-    }
-    const billing = await Billing.findById(billingId);
-    if (!billing) throw new Error("Facture introuvable");
+// GET /api/v1/billings/my — farmer or owner
+exports.getMyBillings = catchAsyncErrors(async (req, res, next) => {
+  let query = {};
 
-    billing.status = status;
-    await billing.save();
+  if (req.user.role === 'AGRICULTEUR') {
+    query.user = req.user.id;
+  } else if (req.user.role === 'PROPRIETAIRE' || req.user.role === 'TRANSFORMATEUR') {
+    const storages = await Storage.find({ owner: req.user.id }).select('_id');
+    query.storage = { $in: storages.map(s => s._id) };
+  } else if (req.user.role === 'ADMIN') {
+    // admin can use this endpoint too — no filter
+  } else {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
 
-    return billing;
-}
+  const billings = await Billing.find(query)
+    .populate('reservation')
+    .populate('user', 'name email')
+    .populate('storage', 'name location');
+  res.status(200).json({ success: true, data: billings, count: billings.length });
+});
 
-exports.getBillingById = async (billingId) => {
-    const billing = await Billing.findById(billingId)
-        .populate('reservation')
-        .populate('user')
-        .populate('storage');
+// GET /api/v1/billings/storage/:storageId
+exports.getBillingsByStorage = catchAsyncErrors(async (req, res, next) => {
+  const storage = await Storage.findById(req.params.storageId);
+  if (!storage) return next(new ErrorHandler('Storage not found', 404));
 
-    if (!billing) throw new Error("Facture introuvable");
+  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
 
-    return billing;
-}
+  const billings = await Billing.find({ storage: req.params.storageId });
+  res.status(200).json({ success: true, data: billings, count: billings.length });
+});
 
-exports.getBillingsByStatus = async (status) => {
-    const billings = await Billing.find({ status })
-        .populate('reservation')
-        .populate('user')
-        .populate('storage');
+// GET /api/v1/billings/:id
+exports.getBillingById = catchAsyncErrors(async (req, res, next) => {
+  const billing = await Billing.findById(req.params.id)
+    .populate('reservation')
+    .populate('user', 'name email')
+    .populate('storage', 'name location');
 
-    return billings;
-}
+  if (!billing) return next(new ErrorHandler('Billing not found', 404));
 
+  const isOwner = billing.user?._id?.toString() === req.user.id;
+  const storageDoc = await Storage.findById(billing.storage?._id);
+  const isStorageOwner = storageDoc?.owner?.toString() === req.user.id;
 
-exports.getBillingsByStorage = async (storageId) => {
-    const billings = await Billing.find({ storage: storageId });
+  if (req.user.role !== 'ADMIN' && !isOwner && !isStorageOwner) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
 
-    return billings;
-}
+  res.status(200).json({ success: true, data: billing });
+});
 
-exports.getAllBillings = async () => {
-    const billings = await Billing.find();
+// PUT /api/v1/billings/:id/status — admin only
+exports.updateBillingStatus = catchAsyncErrors(async (req, res, next) => {
+  const { status } = req.body;
 
-    return billings;
-}
+  if (!['PENDING', 'PAID', 'CANCELLED'].includes(status)) {
+    return next(new ErrorHandler('Invalid billing status', 400));
+  }
+
+  const billing = await Billing.findById(req.params.id);
+  if (!billing) return next(new ErrorHandler('Billing not found', 404));
+
+  billing.status = status;
+  if (status === 'PAID') billing.paidAt = new Date();
+  await billing.save();
+
+  res.status(200).json({ success: true, data: billing });
+});

@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false
     },
-    phone: String,
+    phone: { type: String, unique: true, sparse: true },
     role: {
       type: String,
       enum: ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT', 'ADMIN'],
@@ -32,6 +32,26 @@ const userSchema = new mongoose.Schema(
       public_id: String,
       url: String
     },
+    // Shared profile field
+    location: String,
+
+    // AGRICULTEUR fields
+    exploitationType: String,
+    crops: [String],
+
+    // PROPRIETAIRE / TRANSFORMATEUR fields
+    companyName: String,
+    companyRegistration: String,
+    contactPerson: String,
+
+    // AGENT fields
+    assignedRegion: String,
+
+    // Account status
+    isActive: { type: Boolean, default: true },
+    isVerified: { type: Boolean, default: false },
+    pendingPhone: String,
+
     resetPasswordToken: String,
     resetPasswordExpire: Date
   },

@@ -1,120 +1,214 @@
 const Storage = require('../models/Storage');
+const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
+const ErrorHandler = require('../utils/errorHandler');
+const cloudinary = require('../config/cloudinary');
+const paginate = require('../utils/paginate');
+
+// Helper: upload files to Cloudinary and return { public_id, url } objects
+async function uploadPhotos(files) {
+  const uploads = Array.isArray(files) ? files : [files];
+  const results = [];
+  for (const file of uploads) {
+    const result = await cloudinary.uploader.upload(file.tempFilePath || file.data, {
+      folder: 'storages',
+      resource_type: 'image'
+    });
+    results.push({ public_id: result.public_id, url: result.secure_url });
+  }
+  return results;
+}
+
+// Helper: delete photos from Cloudinary
+async function destroyPhotos(photos) {
+  for (const photo of photos) {
+    if (photo.public_id) {
+      await cloudinary.uploader.destroy(photo.public_id).catch(() => {});
+    }
+  }
+}
 
 // Create new storage
-exports.createStorage = async (req, res) => {
-  try {
-    const storage = new Storage(req.body);
-    const saved = await storage.save();
-    res.status(201).json(saved);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+exports.createStorage = catchAsyncErrors(async (req, res, next) => {
+  // Agent proxy: allow creating on behalf of an owner
+  let ownerId = req.user.id;
+  if (req.user.role === 'AGENT' && req.body.ownerId) {
+    const User = require('../models/User');
+    const owner = await User.findById(req.body.ownerId);
+    if (!owner || !['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(owner.role)) {
+      return next(new ErrorHandler('Invalid owner specified', 400));
+    }
+    ownerId = req.body.ownerId;
   }
-};
 
-// Get all storages
-exports.getAllStorages = async (req, res) => {
-  try {
-    const storages = await Storage.find();
-    res.status(200).json(storages);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  const storageData = { ...req.body, owner: ownerId, createdBy: req.user.id };
 
-// Get storages for current user (owner)
-exports.getMyStorages = async (req, res) => {
-  try {
-    const storages = await Storage.find({ owner: req.user.id });
-    res.status(200).json(storages);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  // Photo upload
+  if (req.files && req.files.photos) {
+    const files = req.files.photos;
+    const fileList = Array.isArray(files) ? files : [files];
+    if (fileList.length > 10) {
+      return next(new ErrorHandler('Maximum 10 photos allowed', 400));
+    }
+    storageData.photos = await uploadPhotos(fileList);
   }
-};
+
+  const storage = await Storage.create(storageData);
+  res.status(201).json({ success: true, data: storage });
+});
+
+// Get all storages (admin — no availability filter)
+exports.getAllStorages = catchAsyncErrors(async (req, res, next) => {
+  const { page, limit } = req.query;
+  const result = await paginate(Storage, {}, page, limit, 'owner', { createdAt: -1 });
+  res.status(200).json({ success: true, ...result });
+});
+
+// Get storages for current owner (all statuses)
+exports.getMyStorages = catchAsyncErrors(async (req, res, next) => {
+  const { page, limit } = req.query;
+  const result = await paginate(Storage, { owner: req.user.id }, page, limit, '', { createdAt: -1 });
+  res.status(200).json({ success: true, ...result });
+});
 
 // Get storage by ID
-exports.getStorageById = async (req, res) => {
-  try {
-    const storage = await Storage.findById(req.params.id).populate('owner');
-    if (!storage) return res.status(404).json({ message: 'Storage not found' });
-    res.status(200).json(storage);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+exports.getStorageById = catchAsyncErrors(async (req, res, next) => {
+  const storage = await Storage.findById(req.params.id).populate('owner', 'name email phone');
+  if (!storage) return next(new ErrorHandler('Storage not found', 404));
+  res.status(200).json({ success: true, data: storage });
+});
 
 // Update storage
-exports.updateStorage = async (req, res) => {
-  try {
-    const storage = await Storage.findById(req.params.id);
-    if (!storage) return res.status(404).json({ message: 'Storage not found' });
+exports.updateStorage = catchAsyncErrors(async (req, res, next) => {
+  let storage = await Storage.findById(req.params.id);
+  if (!storage) return next(new ErrorHandler('Storage not found', 404));
 
-    if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  // Photo upload — append to existing photos, enforce 10-photo limit
+  if (req.files && req.files.photos) {
+    const files = req.files.photos;
+    const fileList = Array.isArray(files) ? files : [files];
+    const existingCount = storage.photos ? storage.photos.length : 0;
+    if (existingCount + fileList.length > 10) {
+      return next(new ErrorHandler(`Maximum 10 photos allowed. Storage already has ${existingCount}.`, 400));
     }
-
-    const updated = await Storage.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ message: 'Storage not found' });
-    res.status(200).json(updated);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-exports.getStorageByOwner = async (req, res) => {
-  try {
-    const storages = await Storage.find({ owner: req.params.id });
-    res.status(200).json(storages);
-  } catch (error) {
-    res.status(404).json({ message: error.message });
+    const newPhotos = await uploadPhotos(fileList);
+    req.body.photos = [...(storage.photos || []), ...newPhotos];
   }
 
-}
+  storage = await Storage.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  res.status(200).json({ success: true, data: storage });
+});
 
-exports.getStorageByStatus = async (req, res) => {
-  try {
-    const storages = await Storage.find({ isAvailable: req.params.status });
-    res.status(200).json(storages);
-  } catch (error) {
-    res.status(404).json({ message: error.message });
+// Delete storage (admin only — cleans up Cloudinary photos)
+exports.deleteStorage = catchAsyncErrors(async (req, res, next) => {
+  const storage = await Storage.findById(req.params.id);
+  if (!storage) return next(new ErrorHandler('Storage not found', 404));
+
+  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
   }
-}
 
-// Delete storage
-exports.deleteStorage = async (req, res) => {
-  try {
-    const storage = await Storage.findById(req.params.id);
-    if (!storage) return res.status(404).json({ message: 'Storage not found' });
-
-    if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-
-    const deleted = await Storage.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'Storage not found' });
-    res.status(200).json({ message: 'Storage deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (storage.photos && storage.photos.length > 0) {
+    await destroyPhotos(storage.photos);
   }
-};
 
-// Search storages by criteria
-exports.searchStorages = async (req, res) => {
-  try {
-    const { location, productType, from, to } = req.query;
+  await Storage.findByIdAndDelete(req.params.id);
+  res.status(200).json({ success: true, message: 'Storage deleted successfully' });
+});
 
-    const query = {
-      ...(location && { location: { $regex: location, $options: 'i' } }),
-      ...(productType && { productType }),
-      ...(from && to && {
-        availableFrom: { $lte: new Date(from) },
-        availableTo: { $gte: new Date(to) },
-        isAvailable: true
-      }),
+// Delete a specific photo from a storage
+exports.deleteStoragePhoto = catchAsyncErrors(async (req, res, next) => {
+  const storage = await Storage.findById(req.params.id);
+  if (!storage) return next(new ErrorHandler('Storage not found', 404));
+
+  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  const { publicId } = req.body;
+  const photo = storage.photos.find(p => p.public_id === publicId);
+  if (!photo) return next(new ErrorHandler('Photo not found', 404));
+
+  await cloudinary.uploader.destroy(publicId).catch(() => {});
+  storage.photos = storage.photos.filter(p => p.public_id !== publicId);
+  await storage.save();
+
+  res.status(200).json({ success: true, data: storage });
+});
+
+exports.getStorageByOwner = catchAsyncErrors(async (req, res, next) => {
+  const storages = await Storage.find({ owner: req.params.id });
+  res.status(200).json({ success: true, data: storages, count: storages.length });
+});
+
+exports.getStorageByStatus = catchAsyncErrors(async (req, res, next) => {
+  const storages = await Storage.find({ isAvailable: req.params.status });
+  res.status(200).json({ success: true, data: storages, count: storages.length });
+});
+
+// Search storages — geo-search, advanced filters, availability, pagination (BE-009, BE-010, BE-011, BE-034)
+exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
+  const {
+    location, productType, from, to,
+    lat, lng, maxDistance,
+    storageType, minPrice, maxPrice, facilities, minCapacity,
+    page, limit
+  } = req.query;
+
+  const query = { isAvailable: true };
+
+  // Geo-search (BE-009): takes priority over text location
+  if (lat && lng) {
+    const distanceMeters = (parseFloat(maxDistance) || 50) * 1000;
+    query.gpsCoordinates = {
+      $near: {
+        $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+        $maxDistance: distanceMeters
+      }
     };
-
-    const results = await Storage.find(query);
-    res.status(200).json(results);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } else if (location) {
+    // Fallback text search on location string or address fields
+    query.$or = [
+      { location: { $regex: location, $options: 'i' } },
+      { 'address.city': { $regex: location, $options: 'i' } },
+      { 'address.region': { $regex: location, $options: 'i' } }
+    ];
   }
-};
+
+  // Date availability
+  if (from && to) {
+    query.availableFrom = { $lte: new Date(from) };
+    query.availableTo = { $gte: new Date(to) };
+  }
+
+  // Advanced filters (BE-010)
+  if (storageType) query.storageType = storageType;
+  if (productType) query.productType = productType;
+  if (minPrice || maxPrice) {
+    query.costPerKgPerDay = {};
+    if (minPrice) query.costPerKgPerDay.$gte = Number(minPrice);
+    if (maxPrice) query.costPerKgPerDay.$lte = Number(maxPrice);
+  }
+  if (facilities) {
+    query.facilities = { $all: facilities.split(',').map(f => f.trim()) };
+  }
+  if (minCapacity) {
+    query.capacity = { $gte: Number(minCapacity) };
+  }
+
+  // When using $near, sort is applied by MongoDB automatically — skip paginate's sort
+  const useGeo = !!(lat && lng);
+  if (useGeo) {
+    // $near doesn't work with .countDocuments+skip; do a plain find
+    const data = await Storage.find(query)
+      .populate('owner', 'name email')
+      .limit(parseInt(limit, 10) || 20);
+    return res.status(200).json({ success: true, data, count: data.length });
+  }
+
+  const result = await paginate(Storage, query, page, limit, 'owner', { createdAt: -1 });
+  res.status(200).json({ success: true, ...result });
+});
