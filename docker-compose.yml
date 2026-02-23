@@ -14,7 +14,7 @@ services:
 
   # Optional local MongoDB for testing (comment out if you use Atlas)
   mongo:
-    image: mongo:6
+    image: mongo:8
     container_name: toletech-mongo
     restart: unless-stopped
     environment:
