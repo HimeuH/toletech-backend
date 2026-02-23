@@ -22,5 +22,6 @@ router.get('/admin/users', isAuthenticatedUser, authorizeRoles('ADMIN'), authCon
 router.get('/admin/user/:id', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.getUserDetails);
 router.put('/admin/user/:id', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.updateUser);
 router.delete('/admin/user/:id', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.deleteUser);
+router.post('/admin/agents', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.createAgent);
 
 module.exports = router;
