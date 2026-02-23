@@ -46,10 +46,12 @@ const userSchema = new mongoose.Schema(
 
     // AGENT fields
     assignedRegion: String,
+    identificationNumber: String,
 
     // Account status
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
+    mustChangePassword: { type: Boolean, default: false },
     pendingPhone: String,
 
     resetPasswordToken: String,
