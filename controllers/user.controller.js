@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
+const paginate = require('../utils/paginate');
 
 // Create new user
 exports.createUser = catchAsyncErrors(async (req, res, next) => {
@@ -8,10 +9,11 @@ exports.createUser = catchAsyncErrors(async (req, res, next) => {
   res.status(201).json({ success: true, data: user });
 });
 
-// Get all users
+// Get all users (admin) — paginated
 exports.getAllUsers = catchAsyncErrors(async (req, res, next) => {
-  const users = await User.find().sort({ createdAt: -1 });
-  res.status(200).json({ success: true, data: users, count: users.length });
+  const { page, limit } = req.query;
+  const result = await paginate(User, {}, page, limit);
+  res.status(200).json({ success: true, ...result });
 });
 
 // Get user by ID
@@ -35,14 +37,17 @@ exports.deleteUser = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'User deleted' });
 });
 
-// Search users by name or email
+// Search users by name or email — paginated
 exports.searchUsers = catchAsyncErrors(async (req, res, next) => {
-  const { query } = req.query;
-  const users = await User.find({
-    $or: [
-      { name: { $regex: query, $options: 'i' } },
-      { email: { $regex: query, $options: 'i' } }
-    ]
-  });
-  res.status(200).json({ success: true, data: users, count: users.length });
+  const { query, page, limit } = req.query;
+  const filter = query
+    ? {
+        $or: [
+          { name: { $regex: query, $options: 'i' } },
+          { email: { $regex: query, $options: 'i' } }
+        ]
+      }
+    : {};
+  const result = await paginate(User, filter, page, limit);
+  res.status(200).json({ success: true, ...result });
 });

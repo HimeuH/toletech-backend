@@ -2,6 +2,7 @@ const Reservation = require('../models/Reservation');
 const Storage = require('../models/Storage');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
+const paginate = require('../utils/paginate');
 
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.create({
@@ -16,16 +17,24 @@ exports.getReservationByStatus = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, data: reservations, count: reservations.length });
 });
 
-// Get all reservations
+// Get all reservations (admin)
 exports.getAllReservations = catchAsyncErrors(async (req, res, next) => {
-  const reservations = await Reservation.find();
-  res.status(200).json({ success: true, data: reservations, count: reservations.length });
+  const { page, limit } = req.query;
+  const result = await paginate(
+    Reservation, {}, page, limit,
+    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location' }]
+  );
+  res.status(200).json({ success: true, ...result });
 });
 
 // Get reservations for current user
 exports.getMyReservations = catchAsyncErrors(async (req, res, next) => {
-  const reservations = await Reservation.find({ user: req.user.id });
-  res.status(200).json({ success: true, data: reservations, count: reservations.length });
+  const { page, limit } = req.query;
+  const result = await paginate(
+    Reservation, { user: req.user.id }, page, limit,
+    { path: 'storage', select: 'name location address' }
+  );
+  res.status(200).json({ success: true, ...result });
 });
 
 exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
@@ -112,7 +121,7 @@ exports.deleteReservation = catchAsyncErrors(async (req, res, next) => {
 
 // Search reservations by user, storage or status
 exports.searchReservations = catchAsyncErrors(async (req, res, next) => {
-  const { user, storage, status } = req.query;
+  const { user, storage, status, page, limit } = req.query;
   const query = {};
 
   if (status) query.status = status;
@@ -130,6 +139,9 @@ exports.searchReservations = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  const reservations = await Reservation.find(query);
-  res.status(200).json({ success: true, data: reservations, count: reservations.length });
+  const result = await paginate(
+    Reservation, query, page, limit,
+    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location address' }]
+  );
+  res.status(200).json({ success: true, ...result });
 });

@@ -3,6 +3,7 @@ const Reservation = require('../models/Reservation');
 const Storage = require('../models/Storage');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
+const paginate = require('../utils/paginate');
 
 // Internal helper — called by reservation controller on confirmation
 exports.generateBilling = async (reservationId) => {
@@ -36,15 +37,18 @@ exports.generateBilling = async (reservationId) => {
 
 // GET /api/v1/billings — admin only
 exports.getAllBillings = catchAsyncErrors(async (req, res, next) => {
-  const billings = await Billing.find()
-    .populate('reservation')
-    .populate('user', 'name email')
-    .populate('storage', 'name location');
-  res.status(200).json({ success: true, data: billings, count: billings.length });
+  const { page, limit } = req.query;
+  const result = await paginate(Billing, {}, page, limit, [
+    { path: 'user', select: 'name email' },
+    { path: 'storage', select: 'name location' },
+    'reservation'
+  ]);
+  res.status(200).json({ success: true, ...result });
 });
 
 // GET /api/v1/billings/my — farmer or owner
 exports.getMyBillings = catchAsyncErrors(async (req, res, next) => {
+  const { page, limit } = req.query;
   let query = {};
 
   if (req.user.role === 'AGRICULTEUR') {
@@ -58,11 +62,12 @@ exports.getMyBillings = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  const billings = await Billing.find(query)
-    .populate('reservation')
-    .populate('user', 'name email')
-    .populate('storage', 'name location');
-  res.status(200).json({ success: true, data: billings, count: billings.length });
+  const result = await paginate(Billing, query, page, limit, [
+    { path: 'user', select: 'name email' },
+    { path: 'storage', select: 'name location' },
+    'reservation'
+  ]);
+  res.status(200).json({ success: true, ...result });
 });
 
 // GET /api/v1/billings/storage/:storageId
@@ -74,8 +79,9 @@ exports.getBillingsByStorage = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  const billings = await Billing.find({ storage: req.params.storageId });
-  res.status(200).json({ success: true, data: billings, count: billings.length });
+  const { page, limit } = req.query;
+  const result = await paginate(Billing, { storage: req.params.storageId }, page, limit);
+  res.status(200).json({ success: true, ...result });
 });
 
 // GET /api/v1/billings/:id
