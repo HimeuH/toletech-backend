@@ -32,6 +32,11 @@ const reservationSchema = new mongoose.Schema(
       type: String,
       enum: ['KG', 'TONNES', 'SACS', 'LITRES']
     },
+    // BE-024: audit trail — who actually created the record (agent proxy)
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
     // BE-016: status change audit trail
     statusHistory: [
       {
