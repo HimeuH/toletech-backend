@@ -84,6 +84,7 @@ const billingRoutes = require('./routes/billing.routes');
 const authRoutes = require('./routes/auth.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const agentRoutes = require('./routes/agent.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1/auth/register', registerLimiter);
@@ -97,6 +98,7 @@ app.use('/api/v1/billings', billingRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/agent', agentRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 /* ======================
    Frontend (PROD)

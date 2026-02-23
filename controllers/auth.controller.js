@@ -192,6 +192,7 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
     }
 
     user.password = req.body.password;
+    user.mustChangePassword = false;
     await user.save();
 
     sendToken(user, 200, res)
@@ -370,6 +371,46 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
     await currentUser.save();
 
     res.status(200).json({ success: true, message: 'Phone number updated successfully', data: currentUser });
+});
+
+// Create Agent (admin only)   =>   /api/v1/auth/admin/agents
+exports.createAgent = catchAsyncErrors(async (req, res, next) => {
+    const { name, phone, assignedRegion, identificationNumber } = req.body;
+
+    if (!name || !phone || !assignedRegion) {
+        return next(new ErrorHandler('name, phone and assignedRegion are required', 400));
+    }
+
+    const password = crypto.randomBytes(8).toString('hex');
+
+    const agent = await User.create({
+        name,
+        phone,
+        assignedRegion,
+        identificationNumber,
+        role: 'AGENT',
+        email: `${phone}@agent.toletech.com`,
+        password,
+        isActive: true,
+        isVerified: true,
+        mustChangePassword: true
+    });
+
+    // Send credentials via SMS (fire-and-forget so creation is not blocked)
+    void sendSms(phone, `Bienvenue sur ToleTech. Votre mot de passe: ${password}`)
+        .catch((err) => console.error('[Agent SMS] Failed to send credentials:', err?.message || err));
+
+    const agentData = agent.toObject();
+    delete agentData.password;
+
+    // Return the plain-text password once so the admin can note it down
+    // (the stored value is already hashed by the pre-save hook)
+    res.status(201).json({
+        success: true,
+        data: agentData,
+        temporaryPassword: password,
+        message: 'Agent created. Credentials sent via SMS. Store the temporaryPassword — it will not be shown again.'
+    });
 });
 
 // Resend OTP   =>   /api/v1/auth/resend-otp
