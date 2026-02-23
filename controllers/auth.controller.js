@@ -18,7 +18,9 @@ const generateAndSendOtp = async (phone) => {
     await Otp.deleteMany({ phone }); // clear any previous OTPs for this phone
     await Otp.create({ phone, code, expiresAt });
 
-    await sendSms(phone, `Your ToleTech verification code is: ${code}. Valid for 10 minutes.`);
+    // Fire-and-forget SMS so registration isn't blocked by provider latency/errors
+    void sendSms(phone, `Your ToleTech verification code is: ${code}. Valid for 10 minutes.`)
+        .catch((err) => console.error('[OTP SMS] Failed to send:', err?.message || err));
     return code;
 };
 

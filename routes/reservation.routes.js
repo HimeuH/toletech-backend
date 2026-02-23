@@ -8,7 +8,7 @@ const { createReservationRules } = require('../validators/reservation.validators
 router.post(
   '/',
   isAuthenticatedUser,
-  authorizeRoles('AGRICULTEUR', 'ADMIN'),
+  authorizeRoles('AGRICULTEUR', 'AGENT', 'ADMIN'),
   createReservationRules,
   validate,
   reservationController.createReservation
