@@ -1,5 +1,6 @@
 const Reservation = require('../models/Reservation');
 const Storage = require('../models/Storage');
+const Billing = require('../models/Billing');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
@@ -7,7 +8,8 @@ const paginate = require('../utils/paginate');
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.create({
     ...req.body,
-    user: req.user.id
+    user: req.user.id,
+    statusHistory: [{ status: 'EN_ATTENTE', changedBy: req.user.id }]
   });
   res.status(201).json({ success: true, data: reservation });
 });
@@ -37,23 +39,55 @@ exports.getMyReservations = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, ...result });
 });
 
+// BE-015: Owner reservation dashboard
+exports.getOwnerReservations = catchAsyncErrors(async (req, res, next) => {
+  const storageIds = await Storage.find({ owner: req.user.id }).select('_id');
+  const query = { storage: { $in: storageIds.map(s => s._id) } };
+
+  if (req.query.status) query.status = req.query.status;
+  if (req.query.storageId) query.storage = req.query.storageId;
+
+  const { page, limit } = req.query;
+  const result = await paginate(
+    Reservation, query, page, limit,
+    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location address' }]
+  );
+  res.status(200).json({ success: true, ...result });
+});
+
 exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
   const updates = req.body;
 
-  let reservation = await Reservation.findById(id);
+  const reservation = await Reservation.findById(id);
   if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
 
   if (req.user.role !== 'ADMIN' && reservation.user?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  if (req.user.role !== 'ADMIN') {
-    if (reservation.status !== 'EN_ATTENTE') {
-      return next(new ErrorHandler('Only pending reservations can be updated', 403));
-    }
-    if (updates.status && updates.status !== 'ANNULÉ') {
-      return next(new ErrorHandler('Only admin can confirm reservations', 403));
+  // Status transition rules (BE-013)
+  if (updates.status && updates.status !== reservation.status) {
+    if (req.user.role !== 'ADMIN') {
+      // Non-admin users (farmers) can only cancel
+      if (updates.status !== 'ANNULÉ') {
+        return next(new ErrorHandler('Only admin can change to this status', 403));
+      }
+      if (!['EN_ATTENTE', 'APPROUVÉ'].includes(reservation.status)) {
+        return next(new ErrorHandler('Cannot cancel a reservation in this state', 400));
+      }
+    } else {
+      // Admin: enforce valid transitions
+      const validTransitions = {
+        EN_ATTENTE: ['APPROUVÉ', 'REJETÉ', 'ANNULÉ'],
+        APPROUVÉ: ['CONFIRMÉ', 'ANNULÉ'],
+        CONFIRMÉ: [],
+        REJETÉ: [],
+        ANNULÉ: []
+      };
+      if (!validTransitions[reservation.status]?.includes(updates.status)) {
+        return next(new ErrorHandler(`Cannot transition from ${reservation.status} to ${updates.status}`, 400));
+      }
     }
   }
 
@@ -72,7 +106,7 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
     const overlapping = await Reservation.findOne({
       _id: { $ne: reservation._id },
       storage: reservation.storage,
-      status: 'CONFIRMÉ',
+      status: { $in: ['CONFIRMÉ', 'APPROUVÉ'] },
       reservedFrom: { $lt: newTo },
       reservedTo: { $gt: newFrom }
     });
@@ -80,12 +114,68 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
     if (overlapping) return next(new ErrorHandler('Storage already reserved in this period', 400));
   }
 
-  reservation = await Reservation.findByIdAndUpdate(id, updates, {
-    new: true,
-    runValidators: true,
+  // Apply editable fields
+  const editableFields = ['reservedFrom', 'reservedTo', 'notes', 'quantity', 'quantityUnit'];
+  editableFields.forEach(field => {
+    if (updates[field] !== undefined) reservation[field] = updates[field];
   });
 
+  // Status change + statusHistory (BE-016)
+  if (updates.status && updates.status !== reservation.status) {
+    reservation.status = updates.status;
+    if (updates.ownerMessage !== undefined) reservation.ownerMessage = updates.ownerMessage;
+    reservation.statusHistory.push({
+      status: updates.status,
+      changedBy: req.user.id,
+      message: updates.message || ''
+    });
+  }
+
+  await reservation.save();
+
+  // BE-017: Auto-billing on confirmation
+  if (updates.status === 'CONFIRMÉ') {
+    const existingBilling = await Billing.findOne({ reservation: reservation._id });
+    if (!existingBilling) {
+      const { generateBilling } = require('./billing.controller');
+      await generateBilling(reservation._id);
+    }
+  }
+
   res.status(200).json({ success: true, message: 'Reservation updated successfully', data: reservation });
+});
+
+// BE-014: Owner approve/reject endpoint
+exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
+  const { action, message } = req.body;
+
+  if (!['approve', 'reject'].includes(action)) {
+    return next(new ErrorHandler('Action must be "approve" or "reject"', 400));
+  }
+
+  const reservation = await Reservation.findById(req.params.id).populate('storage');
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  if (reservation.status !== 'EN_ATTENTE') {
+    return next(new ErrorHandler('Only pending reservations can be responded to', 400));
+  }
+
+  // Verify caller owns the storage (or is ADMIN)
+  if (req.user.role !== 'ADMIN' && reservation.storage?.owner?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  reservation.status = action === 'approve' ? 'APPROUVÉ' : 'REJETÉ';
+  reservation.ownerMessage = message || '';
+  reservation.statusHistory.push({
+    status: reservation.status,
+    changedBy: req.user.id,
+    message: message || ''
+  });
+
+  await reservation.save();
+
+  res.status(200).json({ success: true, message: `Reservation ${reservation.status}`, data: reservation });
 });
 
 // Get reservation by ID
