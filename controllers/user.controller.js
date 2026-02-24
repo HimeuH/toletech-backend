@@ -1,12 +1,50 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
+const sendSms = require('../utils/sendSms');
 
-// Create new user
+// Create new user (admin / agent) — auto-generates password
 exports.createUser = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.create(req.body);
-  res.status(201).json({ success: true, data: user });
+  const {
+    name, email, phone, role,
+    location, exploitationType, crops,
+    companyName, companyRegistration, contactPerson,
+    assignedRegion, identificationNumber
+  } = req.body;
+
+  const password = crypto.randomBytes(8).toString('hex');
+
+  const user = await User.create({
+    name, email, phone, role,
+    location, exploitationType, crops,
+    companyName, companyRegistration, contactPerson,
+    assignedRegion, identificationNumber,
+    password,
+    isActive: true,
+    isVerified: true,
+    mustChangePassword: true,
+  });
+
+  if (phone) {
+    void sendSms(
+      phone,
+      `Bienvenue sur ToleTech. Votre compte a été créé. Mot de passe temporaire: ${password}`
+    ).catch((err) =>
+      console.error('[createUser SMS] Failed to send credentials:', err?.message || err)
+    );
+  }
+
+  const userData = user.toObject();
+  delete userData.password;
+
+  res.status(201).json({
+    success: true,
+    data: userData,
+    temporaryPassword: password,
+    message: 'User created. Credentials sent via SMS. Store the temporaryPassword — it will not be shown again.',
+  });
 });
 
 // Get all users (admin) — paginated

@@ -2,152 +2,366 @@
   "info": {
     "_postman_id": "12345678-1234-1234-1234-123456789abc",
     "name": "Toletech Full API",
-    "description": "Full API Collection for Users, Storages, Reservations",
+    "description": "Full API Collection — Auth, Storages, Storage Spaces, Reservations, Billings, Notifications, Agent, Dashboard\n\nAuthentication: all protected endpoints accept the JWT token via either:\n1. Cookie: `token` (set automatically by the server on login / verify-otp — used by web clients with withCredentials)\n2. Header: `Authorization: Bearer <token>` (used in Postman via the {{token}} variable)\n\nThe server checks the cookie first, then falls back to the Bearer header.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "USERS",
+      "name": "AUTH",
       "item": [
         {
-          "name": "Create User",
+          "name": "Register",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@test.com\",\n  \"password\": \"123456\",\n  \"phone\": \"771234567\",\n  \"role\": \"AGRICULTEUR\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"name\": \"Alice Diallo\",\n  \"email\": \"alice@test.com\",\n  \"password\": \"123456\",\n  \"phone\": \"771234567\",\n  \"role\": \"AGRICULTEUR\",\n  \"location\": \"Dakar\",\n  \"exploitationType\": \"Maraîchage\",\n  \"crops\": [\"tomates\", \"oignons\"]\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "Creates a new user. Returns success message and sends OTP via SMS. Does not return JWT — call /auth/verify-otp next.\n\nRoles: AGRICULTEUR, PROPRIETAIRE, TRANSFORMATEUR, AGENT, ADMIN\nRole-specific body fields:\n- AGRICULTEUR: location, exploitationType, crops[]\n- PROPRIETAIRE/TRANSFORMATEUR: location, companyName, companyRegistration, contactPerson\n- AGENT: assignedRegion"
           },
           "response": []
         },
         {
-          "name": "Get All Users",
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"771234567\",\n  \"code\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["auth", "verify-otp"] },
+            "description": "Verifies the OTP sent on registration. On success sets isVerified=true, returns JWT token, and sets `token` cookie (httpOnly). Store the token in {{token}} for subsequent Postman requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"771234567\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/resend-otp", "host": ["{{baseUrl}}"], "path": ["auth", "resend-otp"] },
+            "description": "Generates and resends a new OTP to the given phone number."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"771234567\",\n  \"password\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Accepts { phone, password } or { email, password }. Returns JWT token and sets `token` cookie (httpOnly).\nStore the token in {{token}} variable for Bearer header use in Postman.\n403 if isVerified=false or isActive=false."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] },
+            "description": "Clears the auth cookie and returns success."
           },
           "response": []
         },
         {
-          "name": "Search Users",
+          "name": "Get My Profile",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/search?query=alice",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "search"
-              ],
-              "query": [
-                {
-                  "key": "query",
-                  "value": "alice"
-                }
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] },
+            "description": "Returns the authenticated user's full profile including role-specific fields."
           },
           "response": []
         },
         {
-          "name": "Get User By ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update User",
+          "name": "Update My Profile",
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Alice Updated\",\n  \"email\": \"alice.new@test.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"name\": \"Alice Updated\",\n  \"location\": \"Saint-Louis\",\n  \"crops\": [\"riz\", \"arachides\"]\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/auth/me/update", "host": ["{{baseUrl}}"], "path": ["auth", "me", "update"] },
+            "description": "Updates profile fields. If phone is changed triggers OTP verification flow — phone is stored as pendingPhone until verified via /auth/verify-phone-change."
           },
           "response": []
         },
         {
-          "name": "Delete User",
+          "name": "Verify Phone Change",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"654321\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/verify-phone-change", "host": ["{{baseUrl}}"], "path": ["auth", "verify-phone-change"] },
+            "description": "Verifies OTP for phone number change. Copies pendingPhone → phone on success."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"123456\",\n  \"password\": \"newpass123\",\n  \"confirmPassword\": \"newpass123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/password/update", "host": ["{{baseUrl}}"], "path": ["auth", "password", "update"] },
+            "description": "Changes password for authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+221770000001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/password/forgot", "host": ["{{baseUrl}}"], "path": ["auth", "password", "forgot"] },
+            "description": "Step 1 of 3 — Phone-based password reset.\nSends a 6-digit OTP via SMS to the provided phone number. OTP is valid for 10 minutes.\n\nNext: POST /auth/password/verify-reset-otp"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Reset OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+221770000001\",\n  \"code\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/password/verify-reset-otp", "host": ["{{baseUrl}}"], "path": ["auth", "password", "verify-reset-otp"] },
+            "description": "Step 2 of 3 — Verifies the reset OTP.\nOn success returns a resetToken valid for 15 minutes. Store it in {{resetToken}} for the next step.\n\nResponse: { success, resetToken, message }\n\nNext: PUT /auth/password/reset"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resetToken\": \"{{resetToken}}\",\n  \"password\": \"NewPass123!\",\n  \"confirmPassword\": \"NewPass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/password/reset", "host": ["{{baseUrl}}"], "path": ["auth", "password", "reset"] },
+            "description": "Step 3 of 3 — Sets the new password using the resetToken from step 2.\nOn success returns a JWT (auto-login) and sets the auth cookie.\n\nresetToken expires after 15 minutes."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ADMIN — Users",
+      "item": [
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "ADMIN only. Returns paginated list of all users.\nResponse: { success, data: { data[], count, totalCount, totalPages, currentPage }, message }"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/auth/admin/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "user", "{{userId}}"] },
+            "description": "ADMIN only. Returns full user details by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false,\n  \"role\": \"PROPRIETAIRE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/admin/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "user", "{{userId}}"] },
+            "description": "ADMIN only. Can update any user field including isActive (deactivation) and role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User (Admin)",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/auth/admin/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "user", "{{userId}}"] },
+            "description": "ADMIN only. Deletes a user account."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Agent (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Agent Thiès\",\n  \"email\": \"agent.thies@example.com\",\n  \"phone\": \"+221779876543\",\n  \"assignedRegion\": \"Thiès\",\n  \"identificationNumber\": \"SN-AG-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/admin/agents", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "agents"] },
+            "description": "ADMIN only. Creates an AGENT account with auto-generated password. Sends credentials via SMS. Agent is immediately active and verified.\n\nReturns temporaryPassword in the response (shown once only)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "USERS",
+      "item": [
+        {
+          "name": "Create User (Admin/Agent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mamadou Diallo\",\n  \"email\": \"mamadou.diallo@example.com\",\n  \"phone\": \"+221770001234\",\n  \"role\": \"AGRICULTEUR\",\n  \"location\": \"Kaolack\",\n  \"exploitationType\": \"Grandes cultures\",\n  \"crops\": [\"Mil\", \"Arachide\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] },
+            "description": "Roles: ADMIN, AGENT. Creates a user account with an auto-generated password.\nPassword is sent to the user via SMS. User is immediately active and verified (mustChangePassword=true).\n\nReturns temporaryPassword in the response (shown once only). Do NOT pass a password field — it is ignored.\n\nrole enum: AGRICULTEUR | PROPRIETAIRE | TRANSFORMATEUR | AGENT | ADMIN\nRole-specific body fields:\n- AGRICULTEUR: location, exploitationType, crops[]\n- PROPRIETAIRE/TRANSFORMATEUR: location, companyName, companyRegistration, contactPerson\n- AGENT: assignedRegion, identificationNumber"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users (Admin/Agent)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
             "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
+              "raw": "{{baseUrl}}/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Roles: ADMIN, AGENT. Returns paginated list of all users."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Users (Admin/Agent)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/users/search?query=moussa&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "search"],
+              "query": [
+                { "key": "query", "value": "moussa", "description": "Search by name or email" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Roles: ADMIN, AGENT. Searches users by name or email (case-insensitive regex)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID (Admin/Agent)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "Roles: ADMIN, AGENT. Returns full user details by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User (Admin/Agent)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false,\n  \"location\": \"Saint-Louis\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "Roles: ADMIN, AGENT. Updates any user field."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User (Admin/Agent)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "Roles: ADMIN, AGENT. Deletes a user account."
           },
           "response": []
         }
@@ -161,30 +375,16 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"owner\": \"{{userId}}\",\n  \"location\": \"Dakar Plateau\",\n  \"capacity\": 200,\n  \"capacityUnit\": \"M2\",\n  \"availableFrom\": \"2026-02-01T00:00:00Z\",\n  \"availableTo\": \"2026-05-01T00:00:00Z\",\n  \"productType\": \"Cereales\",\n  \"isAvailable\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"name\": \"Entrepôt Dakar Centre\",\n  \"storageType\": \"HANGAR\",\n  \"address\": {\n    \"street\": \"Rue 10\",\n    \"city\": \"Dakar\",\n    \"region\": \"Dakar\",\n    \"country\": \"Sénégal\"\n  },\n  \"gpsCoordinates\": {\n    \"type\": \"Point\",\n    \"coordinates\": [-17.4441, 14.6928]\n  },\n  \"capacity\": 500,\n  \"capacityUnit\": \"M2\",\n  \"costPerKgPerDay\": 5,\n  \"description\": \"Grand entrepôt sécurisé\",\n  \"facilities\": [\"electricity\", \"security\", \"ventilation\"],\n  \"accessHours\": \"08:00-18:00\",\n  \"availableFrom\": \"2026-03-01T00:00:00Z\",\n  \"availableTo\": \"2026-12-31T00:00:00Z\",\n  \"isAvailable\": true\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{baseUrl}}/storages",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "storages"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/storages", "host": ["{{baseUrl}}"], "path": ["storages"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, AGENT, ADMIN.\nAgent: include ownerId to create on behalf of an owner (PROPRIETAIRE/TRANSFORMATEUR).\n\nstorageType enum: SILO | HANGAR | CHAMBRE_FROIDE\ncapacityUnit enum: M2 | HA | L | M3 | TONNES\n\nFor photo upload use multipart/form-data with files field 'photos' (max 10)."
           },
           "response": []
         },
@@ -194,14 +394,33 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/storages",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "storages"
+              "raw": "{{baseUrl}}/storages?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Public. Returns paginated list of all storages (any availability status).\nResponse: { success, data: { data[], count, totalCount, totalPages, currentPage }, message }"
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Storages",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/storages/my?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages", "my"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Authenticated. Returns only storages owned by the current user."
           },
           "response": []
         },
@@ -211,25 +430,24 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/storages/search?location=dakar&productType=cereales",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "storages",
-                "search"
-              ],
+              "raw": "{{baseUrl}}/storages/search?location=dakar&storageType=HANGAR&minCapacity=100&facilities=electricity,security&lat=14.6928&lng=-17.4441&maxDistance=50&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["storages", "search"],
               "query": [
-                {
-                  "key": "location",
-                  "value": "dakar"
-                },
-                {
-                  "key": "productType",
-                  "value": "cereales"
-                }
+                { "key": "location", "value": "dakar", "description": "Text search on location field (legacy)" },
+                { "key": "storageType", "value": "HANGAR", "description": "SILO | HANGAR | CHAMBRE_FROIDE" },
+                { "key": "minCapacity", "value": "100" },
+                { "key": "facilities", "value": "electricity,security", "description": "Comma-separated list — all must match" },
+                { "key": "minPrice", "value": "", "description": "Min costPerKgPerDay", "disabled": true },
+                { "key": "maxPrice", "value": "", "description": "Max costPerKgPerDay", "disabled": true },
+                { "key": "lat", "value": "14.6928", "description": "Latitude for geo-search" },
+                { "key": "lng", "value": "-17.4441", "description": "Longitude for geo-search" },
+                { "key": "maxDistance", "value": "50", "description": "Radius in km (default 50)" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Public. Always filters isAvailable=true.\nGeo-search activates when lat+lng provided; results sorted by distance.\nAdvanced filters: storageType, minCapacity, minPrice, maxPrice, facilities (comma-separated)."
           },
           "response": []
         },
@@ -238,16 +456,8 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/storages/{{storageId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "storages",
-                "{{storageId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}"] },
+            "description": "Public. Returns full storage details including photos array."
           },
           "response": []
         },
@@ -256,31 +466,16 @@
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"capacity\": 300,\n  \"isAvailable\": false\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"capacity\": 600,\n  \"isAvailable\": false,\n  \"accessHours\": \"07:00-20:00\"\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{baseUrl}}/storages/{{storageId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "storages",
-                "{{storageId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, AGENT, ADMIN. Only the storage owner can update (ADMIN bypasses check).\nisAvailable: false hides storage from search results."
           },
           "response": []
         },
@@ -288,17 +483,88 @@
           "name": "Delete Storage",
           "request": {
             "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, ADMIN. Also deletes all Cloudinary photos."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Storage Photo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_id\": \"storages/abc123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}/photos", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}", "photos"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, ADMIN. Removes a specific photo by public_id from both Cloudinary and the storage document."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "STORAGE SPACES",
+      "item": [
+        {
+          "name": "Create Space",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cellule A\",\n  \"capacity\": 50,\n  \"capacityUnit\": \"TONNES\",\n  \"price\": 15000,\n  \"pricingPeriod\": \"MONTHLY\",\n  \"availableFrom\": \"2026-03-01T00:00:00Z\",\n  \"availableTo\": \"2026-12-31T00:00:00Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}/spaces", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}", "spaces"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, AGENT, ADMIN. Caller must own the parent storage (ADMIN bypasses).\n\ncapacityUnit enum: M2 | HA | L | M3 | TONNES\npricingPeriod enum: DAILY | MONTHLY | SEASONAL\nstatus enum: DISPONIBLE | OCCUPÉ | MAINTENANCE (default: DISPONIBLE)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Spaces By Storage",
+          "request": {
+            "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/storages/{{storageId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "storages",
-                "{{storageId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}/spaces", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}", "spaces"] },
+            "description": "Public. Returns all spaces belonging to a storage."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Space",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 18000,\n  \"status\": \"MAINTENANCE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}/spaces/{{spaceId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}", "spaces", "{{spaceId}}"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Space",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/storages/{{storageId}}/spaces/{{spaceId}}", "host": ["{{baseUrl}}"], "path": ["storages", "{{storageId}}", "spaces", "{{spaceId}}"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, ADMIN."
           },
           "response": []
         }
@@ -312,47 +578,72 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storage\": \"{{storageId}}\",\n  \"user\": \"{{userId}}\",\n  \"reservedFrom\": \"2026-02-10\",\n  \"reservedTo\": \"2026-03-01\",\n  \"status\": \"EN_ATTENTE\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"storage\": \"{{storageId}}\",\n  \"reservedFrom\": \"2026-03-10\",\n  \"reservedTo\": \"2026-04-10\",\n  \"quantity\": 10,\n  \"quantityUnit\": \"TONNES\",\n  \"notes\": \"Stockage de riz paddy\"\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{baseUrl}}/reservations",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "reservations"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/reservations", "host": ["{{baseUrl}}"], "path": ["reservations"] },
+            "description": "Roles: AGRICULTEUR, AGENT, ADMIN.\nAgent: include onBehalfOf (farmerId) to create on behalf of a farmer.\n\nquantityUnit enum: KG | TONNES | SACS | LITRES\nStatus auto-set to EN_ATTENTE on create.\nTriggers in-app notification to storage owner."
           },
           "response": []
         },
         {
-          "name": "Get All Reservations",
+          "name": "Get All Reservations (Admin/Agent)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
             "url": {
-              "raw": "{{baseUrl}}/reservations",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "reservations"
+              "raw": "{{baseUrl}}/reservations?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Roles: ADMIN, AGENT. Returns all reservations paginated."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Reservations (Farmer)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/my?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "my"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Role: AGRICULTEUR. Returns only the authenticated farmer's reservations."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Owner Reservations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/reservations/owner?status=EN_ATTENTE&storageId={{storageId}}&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "owner"],
+              "query": [
+                { "key": "status", "value": "EN_ATTENTE", "description": "Filter by status (optional)" },
+                { "key": "storageId", "value": "{{storageId}}", "description": "Filter by specific storage (optional)" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, ADMIN. Returns all reservations for the caller's storages. Filterable by status and storageId."
           },
           "response": []
         },
@@ -360,23 +651,18 @@
           "name": "Search Reservations",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
             "url": {
-              "raw": "{{baseUrl}}/reservations/search?status=EN_ATTENTE",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "reservations",
-                "search"
-              ],
+              "raw": "{{baseUrl}}/reservations/search?status=EN_ATTENTE&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reservations", "search"],
               "query": [
-                {
-                  "key": "status",
-                  "value": "EN_ATTENTE"
-                }
+                { "key": "status", "value": "EN_ATTENTE", "description": "EN_ATTENTE | APPROUVÉ | REJETÉ | CONFIRMÉ | ANNULÉ" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Authenticated. Searches reservations by status or other query params."
           },
           "response": []
         },
@@ -384,68 +670,244 @@
           "name": "Get Reservation By ID",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/reservations/{{reservationId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "reservations",
-                "{{reservationId}}"
-              ]
-            }
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/reservations/{{reservationId}}", "host": ["{{baseUrl}}"], "path": ["reservations", "{{reservationId}}"] },
+            "description": "Authenticated. Returns full reservation including statusHistory array."
           },
           "response": []
         },
         {
-          "name": "Update Reservation",
+          "name": "Update Reservation (Farmer cancel)",
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"CONFIRMÉ\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"status\": \"ANNULÉ\"\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": {
-              "raw": "{{baseUrl}}/reservations/{{reservationId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "reservations",
-                "{{reservationId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/reservations/{{reservationId}}", "host": ["{{baseUrl}}"], "path": ["reservations", "{{reservationId}}"] },
+            "description": "Authenticated. Farmer can only set status to ANNULÉ (if currently EN_ATTENTE or APPROUVÉ).\nAdmin has full transition control:\n  EN_ATTENTE → APPROUVÉ | REJETÉ | ANNULÉ\n  APPROUVÉ → CONFIRMÉ | ANNULÉ\n\nStatus change to CONFIRMÉ triggers auto-billing generation."
           },
           "response": []
         },
         {
-          "name": "Delete Reservation",
+          "name": "Respond to Reservation (Owner approve/reject)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\",\n  \"message\": \"Réservation approuvée, accès disponible dès le 10 mars.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/reservations/{{reservationId}}/respond", "host": ["{{baseUrl}}"], "path": ["reservations", "{{reservationId}}", "respond"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR, ADMIN. Caller must own the storage.\nReservation must be EN_ATTENTE.\n\naction: \"approve\" → status becomes APPROUVÉ\naction: \"reject\" → status becomes REJETÉ\n\nTriggers SMS + in-app notification to farmer."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Reservation (Admin)",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/reservations/{{reservationId}}", "host": ["{{baseUrl}}"], "path": ["reservations", "{{reservationId}}"] },
+            "description": "Role: ADMIN only."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "BILLINGS",
+      "item": [
+        {
+          "name": "Get All Billings (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
             "url": {
-              "raw": "{{baseUrl}}/reservations/{{reservationId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "reservations",
-                "{{reservationId}}"
+              "raw": "{{baseUrl}}/billings?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["billings"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Role: ADMIN only. Returns all billings paginated."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Billings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/billings/my?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["billings", "my"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Authenticated. Farmer sees their own billings. Storage owner sees billings for their storages."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Billings By Storage",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/billings/storage/{{storageId}}", "host": ["{{baseUrl}}"], "path": ["billings", "storage", "{{storageId}}"] },
+            "description": "Authenticated. Returns billings linked to a specific storage."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Billing By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/billings/{{billingId}}", "host": ["{{baseUrl}}"], "path": ["billings", "{{billingId}}"] },
+            "description": "Authenticated. Returns billing detail. Farmers see own, owners see their storage billings, admin sees all."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Billing Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PAID\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/billings/{{billingId}}/status", "host": ["{{baseUrl}}"], "path": ["billings", "{{billingId}}", "status"] },
+            "description": "Role: ADMIN only. Updates billing status.\nstatus enum: PENDING | PAID | CANCELLED"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NOTIFICATIONS",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Authenticated. Returns paginated notifications for the current user, sorted by createdAt desc.\n\nNotification types: RESERVATION_REQUESTED | RESERVATION_APPROVED | RESERVATION_REJECTED | RESERVATION_CANCELLED | RESERVATION_CONFIRMED | PAYMENT_DUE | GENERAL"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["notifications", "unread-count"] },
+            "description": "Authenticated. Returns { count: N } of unread notifications for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All As Read",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["notifications", "read-all"] },
+            "description": "Authenticated. Marks all notifications as read for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification As Read",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["notifications", "{{notificationId}}", "read"] },
+            "description": "Authenticated. Marks a specific notification as read."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AGENT",
+      "item": [
+        {
+          "name": "Get Region Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": {
+              "raw": "{{baseUrl}}/agent/users?search=alice",
+              "host": ["{{baseUrl}}"],
+              "path": ["agent", "users"],
+              "query": [
+                { "key": "search", "value": "alice", "description": "Search by name or phone (optional)" }
+              ]
+            },
+            "description": "Role: AGENT only. Returns { farmers: [], owners: [] } filtered by the agent's assignedRegion.\nSearchable by name or phone via ?search= query param."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "DASHBOARD",
+      "item": [
+        {
+          "name": "Farmer Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/farmer", "host": ["{{baseUrl}}"], "path": ["dashboard", "farmer"] },
+            "description": "Role: AGRICULTEUR. Returns:\n- activeReservations: count of APPROUVÉ/CONFIRMÉ reservations\n- pendingPayments: billings with status PENDING\n- recentHistory: last 10 reservations"
+          },
+          "response": []
+        },
+        {
+          "name": "Owner Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/owner", "host": ["{{baseUrl}}"], "path": ["dashboard", "owner"] },
+            "description": "Roles: PROPRIETAIRE, TRANSFORMATEUR. Returns:\n- totalStorages, totalSpaces, occupiedSpaces\n- occupationRate (percentage)\n- pendingRequests: count of EN_ATTENTE reservations\n- monthlyRevenue: sum of PAID billings for current month"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/admin", "host": ["{{baseUrl}}"], "path": ["dashboard", "admin"] },
+            "description": "Role: ADMIN. Returns:\n- users: { byRole[], newToday, newWeek, newMonth }\n- storages: { total }\n- reservations: { total, byStatus[] }\n- revenue: { total }"
           },
           "response": []
         }
@@ -453,25 +915,14 @@
     }
   ],
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3000/api/v1",
-      "type": "string"
-    },
-    {
-      "key": "userId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "storageId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "reservationId",
-      "value": "",
-      "type": "string"
-    }
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string", "description": "JWT token from login or verify-otp response" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "storageId", "value": "", "type": "string" },
+    { "key": "spaceId", "value": "", "type": "string" },
+    { "key": "reservationId", "value": "", "type": "string" },
+    { "key": "billingId", "value": "", "type": "string" },
+    { "key": "notificationId", "value": "", "type": "string" },
+    { "key": "resetToken", "value": "", "type": "string" }
   ]
 }
