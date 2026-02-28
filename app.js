@@ -79,7 +79,6 @@ app.use(
 const userRoutes = require('./routes/user.routes');
 const reservationRoutes = require('./routes/reservation.routes');
 const storageRoutes = require('./routes/storage.routes');
-const storageSpaceRoutes = require('./routes/storageSpace.routes');
 const billingRoutes = require('./routes/billing.routes');
 const authRoutes = require('./routes/auth.routes');
 const notificationRoutes = require('./routes/notification.routes');
@@ -93,7 +92,6 @@ app.use('/api/v1/auth/password/forgot', forgotPasswordLimiter);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/reservations', reservationRoutes);
 app.use('/api/v1/storages', storageRoutes);
-app.use('/api/v1/storages/:storageId/spaces', storageSpaceRoutes);
 app.use('/api/v1/billings', billingRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
