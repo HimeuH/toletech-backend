@@ -1,7 +1,7 @@
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const connectDB = require('./db');
-const { User, Storage, StorageSpace, Reservation, Billing, Otp } = require('../models');
+const { User, Storage, Reservation, Billing, Otp } = require('../models');
 
 dotenv.config({ path: './config/config.env' });
 
@@ -22,7 +22,6 @@ const main = async () => {
     await Promise.all([
       User.deleteMany({}),
       Storage.deleteMany({}),
-      StorageSpace.deleteMany({}),
       Reservation.deleteMany({}),
       Billing.deleteMany({}),
       Otp.deleteMany({})
@@ -346,175 +345,6 @@ const main = async () => {
         costPerKgPerDay: 35,
         productType: 'Poisson, légumes, fruits d\'exportation',
         isAvailable: true
-      }
-    ]);
-
-    // ── Storage Spaces ──────────────────────────────────────────────────────────
-    await StorageSpace.create([
-      // Silo Rufisque (storages[0])
-      {
-        storage: storages[0]._id,
-        name: 'Cellule A – Mil/Sorgho',
-        capacity: 500,
-        capacityUnit: 'TONNES',
-        price: 120000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(180),
-        status: 'OCCUPÉ'
-      },
-      {
-        storage: storages[0]._id,
-        name: 'Cellule B – Maïs',
-        capacity: 500,
-        capacityUnit: 'TONNES',
-        price: 120000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(180),
-        status: 'DISPONIBLE'
-      },
-      {
-        storage: storages[0]._id,
-        name: 'Cellule C – Polyvalente',
-        capacity: 500,
-        capacityUnit: 'TONNES',
-        price: 115000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(5),
-        availableTo: daysFromNow(180),
-        status: 'DISPONIBLE'
-      },
-
-      // Hangar Kaolack (storages[1])
-      {
-        storage: storages[1]._id,
-        name: 'Zone Arachide – Lot 1',
-        capacity: 400,
-        capacityUnit: 'TONNES',
-        price: 180000,
-        pricingPeriod: 'SEASONAL',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(120),
-        status: 'DISPONIBLE'
-      },
-      {
-        storage: storages[1]._id,
-        name: 'Zone Légumineuses – Lot 2',
-        capacity: 400,
-        capacityUnit: 'TONNES',
-        price: 175000,
-        pricingPeriod: 'SEASONAL',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(120),
-        status: 'OCCUPÉ'
-      },
-
-      // Silos Fleuve Saint-Louis (storages[2])
-      {
-        storage: storages[2]._id,
-        name: 'Silo 1 – Riz Paddy',
-        capacity: 800,
-        capacityUnit: 'TONNES',
-        price: 90000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(240),
-        status: 'OCCUPÉ'
-      },
-      {
-        storage: storages[2]._id,
-        name: 'Silo 2 – Riz Blanchi',
-        capacity: 800,
-        capacityUnit: 'TONNES',
-        price: 95000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(240),
-        status: 'DISPONIBLE'
-      },
-      {
-        storage: storages[2]._id,
-        name: 'Magasin Céréales Diverses',
-        capacity: 400,
-        capacityUnit: 'TONNES',
-        price: 80000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(10),
-        availableTo: daysFromNow(240),
-        status: 'DISPONIBLE'
-      },
-
-      // Chambre Froide Thiès (storages[3])
-      {
-        storage: storages[3]._id,
-        name: 'Chambre 1 – Légumes 2°C',
-        capacity: 150,
-        capacityUnit: 'M3',
-        price: 250000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(90),
-        status: 'DISPONIBLE'
-      },
-      {
-        storage: storages[3]._id,
-        name: 'Chambre 2 – Produits Laitiers 4°C',
-        capacity: 150,
-        capacityUnit: 'M3',
-        price: 270000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(90),
-        status: 'MAINTENANCE'
-      },
-
-      // Hangar Ziguinchor (storages[4])
-      {
-        storage: storages[4]._id,
-        name: 'Espace Riz Casamance',
-        capacity: 300,
-        capacityUnit: 'TONNES',
-        price: 165000,
-        pricingPeriod: 'SEASONAL',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(150),
-        status: 'DISPONIBLE'
-      },
-      {
-        storage: storages[4]._id,
-        name: 'Espace Cajou & Huiles',
-        capacity: 300,
-        capacityUnit: 'TONNES',
-        price: 155000,
-        pricingPeriod: 'SEASONAL',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(150),
-        status: 'DISPONIBLE'
-      },
-
-      // Entrepôt Frigorifique Dakar-Yoff (storages[5])
-      {
-        storage: storages[5]._id,
-        name: 'Cellule Poisson 0°C',
-        capacity: 80,
-        capacityUnit: 'M3',
-        price: 400000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(120),
-        status: 'DISPONIBLE'
-      },
-      {
-        storage: storages[5]._id,
-        name: 'Cellule Export 8°C',
-        capacity: 170,
-        capacityUnit: 'M3',
-        price: 350000,
-        pricingPeriod: 'MONTHLY',
-        availableFrom: daysFromNow(0),
-        availableTo: daysFromNow(120),
-        status: 'DISPONIBLE'
       }
     ]);
 

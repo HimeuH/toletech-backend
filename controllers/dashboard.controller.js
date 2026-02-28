@@ -3,7 +3,6 @@ const sendResponse = require('../utils/sendResponse');
 const Reservation = require('../models/Reservation');
 const Billing = require('../models/Billing');
 const Storage = require('../models/Storage');
-const StorageSpace = require('../models/StorageSpace');
 const User = require('../models/User');
 
 // GET /api/v1/dashboard/farmer
@@ -32,9 +31,7 @@ exports.ownerDashboard = catchAsyncErrors(async (req, res, next) => {
   const storages = await Storage.find({ owner: req.user.id });
   const storageIds = storages.map(s => s._id);
 
-  const [totalSpaces, occupiedSpaces, pendingRequests, monthlyRevenue] = await Promise.all([
-    StorageSpace.countDocuments({ storage: { $in: storageIds } }),
-    StorageSpace.countDocuments({ storage: { $in: storageIds }, status: 'OCCUPÉ' }),
+  const [pendingRequests, monthlyRevenue] = await Promise.all([
     Reservation.countDocuments({ storage: { $in: storageIds }, status: 'EN_ATTENTE' }),
     Billing.aggregate([
       {
@@ -50,9 +47,6 @@ exports.ownerDashboard = catchAsyncErrors(async (req, res, next) => {
 
   sendResponse(res, 200, {
     totalStorages: storages.length,
-    totalSpaces,
-    occupiedSpaces,
-    occupationRate: totalSpaces ? ((occupiedSpaces / totalSpaces) * 100).toFixed(1) : 0,
     pendingRequests,
     monthlyRevenue: monthlyRevenue[0]?.total || 0
   });
