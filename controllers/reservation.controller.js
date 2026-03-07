@@ -40,11 +40,6 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   res.status(201).json({ success: true, data: reservation });
 });
 
-exports.getReservationByStatus = catchAsyncErrors(async (req, res, next) => {
-  const reservations = await Reservation.find({ status: req.params.status });
-  res.status(200).json({ success: true, data: reservations, count: reservations.length });
-});
-
 // Get all reservations (admin)
 exports.getAllReservations = catchAsyncErrors(async (req, res, next) => {
   const { page, limit } = req.query;
@@ -99,7 +94,7 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
       if (updates.status !== 'ANNULÉ') {
         return next(new ErrorHandler('Only admin can change to this status', 403));
       }
-      if (!['EN_ATTENTE', 'APPROUVÉ'].includes(reservation.status)) {
+      if (reservation.status !== 'EN_ATTENTE') {
         return next(new ErrorHandler('Cannot cancel a reservation in this state', 400));
       }
     } else {
