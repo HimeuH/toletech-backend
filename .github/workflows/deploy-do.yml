@@ -1,0 +1,53 @@
+name: Deploy Backend to DigitalOcean
+
+on:
+  push:
+    branches: [mvp]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_TOKEN }}
+
+      - name: Login to DO Container Registry
+        run: doctl registry login --expiry-seconds 600
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/toletech-backend:latest
+
+      - name: Deploy to droplet
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/toletech
+
+            # Refresh secrets in .env
+            cat > .env <<ENV
+            NODE_ENV=production
+            PORT=3000
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_TIME=${{ secrets.JWT_EXPIRES_TIME || '7d' }}
+            COOKIE_EXPIRES_TIME=${{ secrets.COOKIE_EXPIRES_TIME || '7' }}
+            REGISTRY=registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}
+            ENV
+
+            echo "${{ secrets.DO_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_TOKEN }}" --password-stdin
+            docker compose pull backend
+            docker compose up -d --no-deps backend
