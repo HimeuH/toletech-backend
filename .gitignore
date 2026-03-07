@@ -19,6 +19,8 @@ pnpm-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+config/config.env
+.database.sqlite
 
 # Runtime data
 pids
@@ -61,3 +63,5 @@ Thumbs.db
 # Uploads / temp files (if any)
 uploads/
 public/uploads/
+rbac.json
+/docs
