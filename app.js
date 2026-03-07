@@ -68,7 +68,7 @@ app.use(cookieParser());
 app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
 app.use(
   cors({
-    origin: ['http://localhost:4200'],
+    origin: ['http://localhost:4200', 'https://mvp.toletech.sn'],
     credentials: true
   })
 );
