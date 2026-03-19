@@ -9,6 +9,9 @@ const startServer = async () => {
   try {
     await connectDB();
 
+    // S4: start payout cron job after DB is ready
+    require('./utils/payoutJob');
+
     const server = app.listen(PORT, () => {
       console.log(
         `🚀 Server running on PORT ${PORT} in ${process.env.NODE_ENV} mode`
