@@ -6,6 +6,17 @@ const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
 const notify = require('../utils/notify');
 
+// Helper: convert quantity to storage capacityUnit for comparison (best-effort)
+const toStorageUnit = (quantity, quantityUnit, capacityUnit) => {
+  if (!quantity || !quantityUnit || !capacityUnit) return null;
+  if (quantityUnit === capacityUnit) return quantity;
+  // KG ↔ TONNES
+  if (quantityUnit === 'KG' && capacityUnit === 'TONNES') return quantity / 1000;
+  if (quantityUnit === 'TONNES' && capacityUnit === 'KG') return quantity * 1000;
+  // Cannot compare across incompatible units (e.g. SACS vs M2) — skip check
+  return null;
+};
+
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   // BE-024: agent proxy — reserve on behalf of a farmer
   let userId = req.user.id;
@@ -16,6 +27,21 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
       return next(new ErrorHandler('Invalid farmer specified for onBehalfOf', 400));
     }
     userId = req.body.onBehalfOf;
+  }
+
+  // S2-BE-03: validate available capacity before creating
+  if (req.body.quantity && req.body.storage) {
+    const storage = await Storage.findById(req.body.storage).select('capacity reservedCapacity capacityUnit');
+    if (storage) {
+      const available = Math.max(0, (storage.capacity || 0) - (storage.reservedCapacity || 0));
+      const converted = toStorageUnit(req.body.quantity, req.body.quantityUnit, storage.capacityUnit);
+      if (converted !== null && converted > available) {
+        return next(new ErrorHandler(
+          `Capacité insuffisante. Disponible : ${available} ${storage.capacityUnit}, demandé : ${converted} ${storage.capacityUnit}`,
+          400
+        ));
+      }
+    }
   }
 
   const reservation = await Reservation.create({
@@ -90,7 +116,7 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
   // Status transition rules (BE-013)
   if (updates.status && updates.status !== reservation.status) {
     if (!req.user.roles.includes('ADMIN')) {
-      // Non-admin users (farmers) can only cancel
+      // Non-admin users (farmers) can only cancel pending reservations
       if (updates.status !== 'ANNULÉ') {
         return next(new ErrorHandler('Only admin can change to this status', 403));
       }
@@ -98,11 +124,11 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler('Cannot cancel a reservation in this state', 400));
       }
     } else {
-      // Admin: enforce valid transitions
+      // Admin: enforce valid transitions (CONFIRMÉ → ANNULÉ allowed to free capacity)
       const validTransitions = {
         EN_ATTENTE: ['APPROUVÉ', 'REJETÉ', 'ANNULÉ'],
         APPROUVÉ: ['CONFIRMÉ', 'ANNULÉ'],
-        CONFIRMÉ: [],
+        CONFIRMÉ: ['ANNULÉ'],
         REJETÉ: [],
         ANNULÉ: []
       };
@@ -141,6 +167,9 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
     if (updates[field] !== undefined) reservation[field] = updates[field];
   });
 
+  // Capture previous status before overwriting (needed for capacity logic below)
+  const previousStatus = reservation.status;
+
   // Status change + statusHistory (BE-016)
   if (updates.status && updates.status !== reservation.status) {
     reservation.status = updates.status;
@@ -153,6 +182,21 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
   }
 
   await reservation.save();
+
+  // S2-BE-02: atomic capacity updates on status transition
+  if (updates.status && updates.status !== previousStatus && reservation.quantity) {
+    const qty = reservation.quantity;
+    const qUnit = reservation.quantityUnit;
+    if (updates.status === 'CONFIRMÉ') {
+      // Lock capacity when reservation is confirmed
+      await Storage.findByIdAndUpdate(reservation.storage, { $inc: { reservedCapacity: qty } });
+    } else if (updates.status === 'ANNULÉ' && previousStatus === 'CONFIRMÉ') {
+      // Free capacity when a confirmed reservation is cancelled (admin only path)
+      await Storage.findByIdAndUpdate(reservation.storage, [
+        { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', qty] }] } } }
+      ]);
+    }
+  }
 
   // BE-020: notify owner when farmer cancels
   if (updates.status === 'ANNULÉ') {
@@ -251,6 +295,13 @@ exports.deleteReservation = catchAsyncErrors(async (req, res, next) => {
 
   if (!req.user.roles.includes('ADMIN') && reservation.user?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  // S2: free capacity if a confirmed reservation is deleted
+  if (reservation.status === 'CONFIRMÉ' && reservation.quantity) {
+    await Storage.findByIdAndUpdate(reservation.storage, [
+      { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', reservation.quantity] }] } } }
+    ]);
   }
 
   await Reservation.findByIdAndDelete(req.params.id);

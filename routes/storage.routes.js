@@ -25,5 +25,7 @@ router.put(
 );
 router.delete('/:id', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'ADMIN'), storageController.deleteStorage);
 router.delete('/:id/photos', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'ADMIN'), storageController.deleteStoragePhoto);
+// S2-BE-05: Admin adjust reserved capacity
+router.put('/:id/adjust-capacity', isAuthenticatedUser, authorizeRoles('ADMIN'), storageController.adjustCapacity);
 
 module.exports = router;

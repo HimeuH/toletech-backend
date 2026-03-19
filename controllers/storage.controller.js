@@ -144,6 +144,27 @@ exports.getStorageByOwner = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, data: storages, count: storages.length });
 });
 
+// S2-BE-05: Admin adjust reserved capacity manually
+exports.adjustCapacity = catchAsyncErrors(async (req, res, next) => {
+  const { reservedCapacity } = req.body;
+
+  if (reservedCapacity === undefined || reservedCapacity < 0) {
+    return next(new ErrorHandler('reservedCapacity must be a non-negative number', 400));
+  }
+
+  const storage = await Storage.findById(req.params.id);
+  if (!storage) return next(new ErrorHandler('Storage not found', 404));
+
+  if (reservedCapacity > storage.capacity) {
+    return next(new ErrorHandler(`reservedCapacity (${reservedCapacity}) cannot exceed total capacity (${storage.capacity})`, 400));
+  }
+
+  storage.reservedCapacity = reservedCapacity;
+  await storage.save();
+
+  res.status(200).json({ success: true, data: storage, message: 'Capacity adjusted successfully' });
+});
+
 exports.getStorageByStatus = catchAsyncErrors(async (req, res, next) => {
   const storages = await Storage.find({ isAvailable: req.params.status });
   res.status(200).json({ success: true, data: storages, count: storages.length });

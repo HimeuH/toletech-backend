@@ -69,11 +69,26 @@ const storageSchema = new mongoose.Schema(
     isAvailable: {
       type: Boolean,
       default: true
+    },
+
+    // S2: automated stock tracking
+    reservedCapacity: {
+      type: Number,
+      default: 0,
+      min: 0
     }
   },
   { timestamps: true }
 );
 
 storageSchema.index({ gpsCoordinates: '2dsphere' });
+
+// Virtual: capacity still available for new reservations
+storageSchema.virtual('availableCapacity').get(function () {
+  return Math.max(0, (this.capacity || 0) - (this.reservedCapacity || 0));
+});
+
+// Include virtuals in JSON responses
+storageSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Storage', storageSchema);
