@@ -465,6 +465,191 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+// ─── SPRINT 5: Secured phone change flow ─────────────────────────────────────
+
+// S5-BE-02: Step 1 — request identity verification OTP
+// Chemin A : OTP SMS on current phone
+// Chemin B : OTP email if no phone
+// POST /api/v1/auth/request-phone-change  (authenticated)
+exports.requestPhoneChange = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+
+  if (user.phone) {
+    // Chemin A — SMS on old number
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.phoneChangeEmailCode = crypto.createHash('sha256').update(code).digest('hex');
+    user.phoneChangeEmailExpiry = expiresAt;
+    await user.save({ validateBeforeSave: false });
+
+    void sendSms(
+      user.phone,
+      `ToleTech — Code de vérification identité: ${code}. Valide 10 min.`,
+    ).catch((err) => console.error('[PhoneChange SMS]', err?.message || err));
+
+    return res.status(200).json({
+      success: true,
+      channel: 'sms',
+      message: 'OTP envoyé par SMS sur votre ancien numéro.',
+    });
+  }
+
+  // Chemin B — OTP via email
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  user.phoneChangeEmailCode = crypto.createHash('sha256').update(code).digest('hex');
+  user.phoneChangeEmailExpiry = expiresAt;
+  await user.save({ validateBeforeSave: false });
+
+  void sendEmail({
+    email: user.email,
+    subject: 'ToleTech — Vérification identité pour changement de numéro',
+    message: `Votre code de vérification ToleTech est : ${code}\nValide 10 minutes.`,
+  }).catch((err) => console.error('[PhoneChange Email]', err?.message || err));
+
+  return res.status(200).json({
+    success: true,
+    channel: 'email',
+    message: `OTP envoyé par email à ${user.email}.`,
+  });
+});
+
+// S5-BE-03: Step 2 — verify identity OTP → returns phoneChangeToken
+// POST /api/v1/auth/verify-identity  (authenticated)
+exports.verifyIdentity = catchAsyncErrors(async (req, res, next) => {
+  const { code } = req.body;
+  if (!code) return next(new ErrorHandler('Le code OTP est requis', 400));
+
+  const user = await User.findById(req.user.id);
+
+  if (!user.phoneChangeEmailCode || !user.phoneChangeEmailExpiry) {
+    return next(new ErrorHandler("Aucune demande de vérification en cours. Relancez l'étape 1.", 400));
+  }
+
+  if (user.phoneChangeEmailExpiry < new Date()) {
+    user.phoneChangeEmailCode = undefined;
+    user.phoneChangeEmailExpiry = undefined;
+    await user.save({ validateBeforeSave: false });
+    return next(new ErrorHandler('OTP expiré. Relancez la demande.', 400));
+  }
+
+  const hashedCode = crypto.createHash('sha256').update(code).digest('hex');
+  if (hashedCode !== user.phoneChangeEmailCode) {
+    return next(new ErrorHandler('Code OTP invalide.', 400));
+  }
+
+  // Identity confirmed — generate short-lived phoneChangeToken (15 min)
+  const rawToken = crypto.randomBytes(20).toString('hex');
+  user.phoneChangeToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+  user.phoneChangeTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
+  user.phoneChangeEmailCode = undefined;
+  user.phoneChangeEmailExpiry = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    phoneChangeToken: rawToken,
+    message: 'Identité vérifiée. Utilisez phoneChangeToken pour saisir le nouveau numéro (valide 15 min).',
+  });
+});
+
+// S5-BE-04a: Step 3a — submit new phone (sends OTP to new number)
+// POST /api/v1/auth/submit-new-phone  (authenticated)
+exports.submitNewPhone = catchAsyncErrors(async (req, res, next) => {
+  const { newPhone, phoneChangeToken } = req.body;
+  if (!newPhone || !phoneChangeToken) {
+    return next(new ErrorHandler('newPhone et phoneChangeToken sont requis', 400));
+  }
+
+  const user = await User.findById(req.user.id);
+
+  // Validate phoneChangeToken
+  if (!user.phoneChangeToken || !user.phoneChangeTokenExpiry) {
+    return next(new ErrorHandler("Aucun token de changement actif. Recommencez depuis l'étape 1.", 400));
+  }
+  if (user.phoneChangeTokenExpiry < new Date()) {
+    user.phoneChangeToken = undefined;
+    user.phoneChangeTokenExpiry = undefined;
+    await user.save({ validateBeforeSave: false });
+    return next(new ErrorHandler('Token expiré. Recommencez depuis le début.', 400));
+  }
+  const hashedToken = crypto.createHash('sha256').update(phoneChangeToken).digest('hex');
+  if (hashedToken !== user.phoneChangeToken) {
+    return next(new ErrorHandler('Token invalide.', 401));
+  }
+
+  if (newPhone === user.phone) {
+    return next(new ErrorHandler('Le nouveau numéro est identique à l\'ancien.', 400));
+  }
+
+  // Check new phone not already taken by another user
+  const existing = await User.findOne({ phone: newPhone });
+  if (existing) {
+    return next(new ErrorHandler('Ce numéro est déjà utilisé par un autre compte.', 409));
+  }
+
+  // Send OTP to new phone
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await Otp.deleteMany({ phone: newPhone, type: 'PHONE_NEW' });
+  await Otp.create({ phone: newPhone, code, expiresAt, type: 'PHONE_NEW' });
+
+  user.pendingPhone = newPhone;
+  await user.save({ validateBeforeSave: false });
+
+  void sendSms(
+    newPhone,
+    `ToleTech — Code de confirmation nouveau numéro: ${code}. Valide 10 min.`,
+  ).catch((err) => console.error('[NewPhone SMS]', err?.message || err));
+
+  res.status(200).json({
+    success: true,
+    message: 'OTP envoyé sur le nouveau numéro. Confirmez pour finaliser le changement.',
+  });
+});
+
+// S5-BE-04b: Step 3b — verify new phone OTP + commit
+// POST /api/v1/auth/verify-new-phone  (authenticated)
+exports.verifyNewPhone = catchAsyncErrors(async (req, res, next) => {
+  const { code } = req.body;
+  if (!code) return next(new ErrorHandler('Le code OTP est requis', 400));
+
+  const user = await User.findById(req.user.id);
+
+  if (!user.pendingPhone) {
+    return next(new ErrorHandler('Aucun numéro en attente de confirmation.', 400));
+  }
+
+  const otp = await Otp.findOne({ phone: user.pendingPhone, code, type: 'PHONE_NEW', verified: false });
+  if (!otp) {
+    return next(new ErrorHandler('Code OTP invalide.', 400));
+  }
+  if (otp.expiresAt < new Date()) {
+    await otp.deleteOne();
+    return next(new ErrorHandler('OTP expiré. Recommencez l\'étape 3.', 400));
+  }
+
+  await otp.deleteOne();
+
+  // Commit
+  user.phone = user.pendingPhone;
+  user.pendingPhone = undefined;
+  user.phoneChangeToken = undefined;
+  user.phoneChangeTokenExpiry = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    message: 'Numéro de téléphone mis à jour avec succès.',
+    data: { phone: user.phone },
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Create Agent (admin only)   =>   /api/v1/auth/admin/agents
 exports.createAgent = catchAsyncErrors(async (req, res, next) => {
   const { name, email, phone, assignedRegion, identificationNumber } = req.body;

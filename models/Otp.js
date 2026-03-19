@@ -5,7 +5,8 @@ const otpSchema = new mongoose.Schema({
   code: { type: String, required: true },
   expiresAt: { type: Date, required: true },
   verified: { type: Boolean, default: false },
-  type: { type: String, enum: ['REGISTER', 'RESET'], default: 'REGISTER' }
+  email: { type: String },                // set when OTP is sent via email
+  type: { type: String, enum: ['REGISTER', 'RESET', 'PHONE_NEW'], default: 'REGISTER' }
 });
 
 // TTL index — MongoDB auto-deletes expired OTP docs

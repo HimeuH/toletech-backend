@@ -65,7 +65,13 @@ const userSchema = new mongoose.Schema(
     pendingPhone: String,
 
     resetPasswordToken: String,
-    resetPasswordExpire: Date
+    resetPasswordExpire: Date,
+
+    // Phone change flow (S5)
+    phoneChangeToken: String,        // hashed intermediate token (identity verified)
+    phoneChangeTokenExpiry: Date,
+    phoneChangeEmailCode: String,    // hashed OTP when identity sent via email
+    phoneChangeEmailExpiry: Date
   },
   { timestamps: true }
 );
