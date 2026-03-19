@@ -19,10 +19,16 @@ router.get('/owner', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSF
 router.get('/my', isAuthenticatedUser, authorizeRoles('AGRICULTEUR'), reservationController.getMyReservations);
 router.get('/', isAuthenticatedUser, authorizeRoles('ADMIN', 'AGENT'), reservationController.getAllReservations);
 router.get('/search', isAuthenticatedUser, reservationController.searchReservations);
+// S3: transport missions — must be before /:id
+router.get('/transport-missions', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), reservationController.getTransportMissions);
 router.get('/:id', isAuthenticatedUser, reservationController.getReservationById);
 router.put('/:id', isAuthenticatedUser, reservationController.updateReservation);
 // BE-014: owner approve/reject
 router.put('/:id/respond', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR', 'ADMIN'), reservationController.respondToReservation);
+// S3: transport actions
+router.put('/:id/assign-transporter', isAuthenticatedUser, authorizeRoles('AGRICULTEUR', 'ADMIN'), reservationController.assignTransporter);
+router.put('/:id/accept-transport', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), reservationController.acceptTransport);
+router.put('/:id/confirm-delivery', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), reservationController.confirmDelivery);
 router.delete('/:id', isAuthenticatedUser, authorizeRoles('ADMIN'), reservationController.deleteReservation);
 
 module.exports = router;

@@ -70,11 +70,29 @@ exports.getMyStorages = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, ...result });
 });
 
-// Get storage by ID
+// Get storage by ID (S3-BE-06: includes avg rating)
 exports.getStorageById = catchAsyncErrors(async (req, res, next) => {
   const storage = await Storage.findById(req.params.id).populate('owner', 'name email phone');
   if (!storage) return next(new ErrorHandler('Storage not found', 404));
-  res.status(200).json({ success: true, data: storage });
+
+  const Review = require('../models/Review');
+  const mongoose = require('mongoose');
+  const ratingResult = await Review.aggregate([
+    {
+      $match: {
+        targetType: 'STORAGE',
+        targetId: new mongoose.Types.ObjectId(req.params.id),
+        isVisible: true
+      }
+    },
+    { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }
+  ]);
+
+  const plain = storage.toJSON();
+  plain.averageRating = ratingResult.length ? Math.round(ratingResult[0].avg * 10) / 10 : 0;
+  plain.reviewCount = ratingResult.length ? ratingResult[0].count : 0;
+
+  res.status(200).json({ success: true, data: plain });
 });
 
 // Update storage

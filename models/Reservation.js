@@ -45,7 +45,19 @@ const reservationSchema = new mongoose.Schema(
         changedAt: { type: Date, default: Date.now },
         message: String
       }
-    ]
+    ],
+
+    // S3-BE-01: transport integration
+    needsTransport: { type: Boolean, default: false },
+    transporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    transportStatus: {
+      type: String,
+      enum: ['NONE', 'DEMANDÉ', 'ACCEPTÉ', 'LIVRÉ'],
+      default: 'NONE'
+    },
+    transportRequestedAt: Date,
+    transportAcceptedAt: Date,
+    deliveredAt: Date
   },
   { timestamps: true }
 );

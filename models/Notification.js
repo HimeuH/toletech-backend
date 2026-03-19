@@ -17,6 +17,9 @@ const notificationSchema = new mongoose.Schema(
         'RESERVATION_CANCELLED',
         'RESERVATION_CONFIRMED',
         'PAYMENT_DUE',
+        'TRANSPORT_ASSIGNED',
+        'TRANSPORT_ACCEPTED',
+        'TRANSPORT_DELIVERED',
         'GENERAL'
       ],
       required: true

@@ -84,6 +84,8 @@ const authRoutes = require('./routes/auth.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const agentRoutes = require('./routes/agent.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const transporterRoutes = require('./routes/transporter.routes');
+const reviewRoutes = require('./routes/review.routes');
 
 app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1/auth/register', registerLimiter);
@@ -97,6 +99,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/agent', agentRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/transporters', transporterRoutes);
+app.use('/api/v1/reviews', reviewRoutes);
 
 /* ======================
    Frontend (PROD)

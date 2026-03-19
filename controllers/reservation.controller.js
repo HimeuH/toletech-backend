@@ -308,6 +308,117 @@ exports.deleteReservation = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'Deleted successfully' });
 });
 
+// S3-BE-03: Assign a transporter to a confirmed reservation
+exports.assignTransporter = catchAsyncErrors(async (req, res, next) => {
+  const { transporterId } = req.body;
+
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  if (reservation.status !== 'CONFIRMÉ') {
+    return next(new ErrorHandler('Transport can only be assigned to confirmed reservations', 400));
+  }
+
+  // Only the farmer who owns the reservation or an admin can assign
+  if (!req.user.roles.includes('ADMIN') && reservation.user?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  const User = require('../models/User');
+  const transporter = await User.findOne({ _id: transporterId, roles: 'TRANSPORTEUR', isAvailableForTransport: true });
+  if (!transporter) return next(new ErrorHandler('Transporteur non disponible', 404));
+
+  reservation.transporter = transporterId;
+  reservation.needsTransport = true;
+  reservation.transportStatus = 'DEMANDÉ';
+  reservation.transportRequestedAt = new Date();
+  await reservation.save();
+
+  // S3-BE-07: notify the transporter of the assignment
+  await notify(
+    transporterId,
+    'TRANSPORT_ASSIGNED',
+    'Nouvelle mission de transport',
+    `Une mission de transport vous a été assignée`,
+    { reservationId: reservation._id },
+    { sms: true }
+  ).catch(err => console.error('Notification error:', err.message));
+
+  res.status(200).json({ success: true, data: reservation });
+});
+
+// S3-BE-04: Transporter accepts the mission
+exports.acceptTransport = catchAsyncErrors(async (req, res, next) => {
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  if (reservation.transporter?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  if (reservation.transportStatus !== 'DEMANDÉ') {
+    return next(new ErrorHandler('Mission not in DEMANDÉ state', 400));
+  }
+
+  reservation.transportStatus = 'ACCEPTÉ';
+  reservation.transportAcceptedAt = new Date();
+  await reservation.save();
+
+  // S3-BE-07: notify the farmer
+  await notify(
+    reservation.user,
+    'TRANSPORT_ACCEPTED',
+    'Mission de transport acceptée',
+    `Votre transporteur a accepté la mission`,
+    { reservationId: reservation._id }
+  ).catch(err => console.error('Notification error:', err.message));
+
+  res.status(200).json({ success: true, data: reservation });
+});
+
+// S3-BE-04: Transporter confirms delivery
+exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  if (reservation.transporter?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  if (reservation.transportStatus !== 'ACCEPTÉ') {
+    return next(new ErrorHandler('Mission not in ACCEPTÉ state', 400));
+  }
+
+  reservation.transportStatus = 'LIVRÉ';
+  reservation.deliveredAt = new Date();
+  await reservation.save();
+
+  // S3-BE-07: notify the farmer + mark transporter available again (optional, let them manage it)
+  await notify(
+    reservation.user,
+    'TRANSPORT_DELIVERED',
+    'Livraison confirmée',
+    `Votre marchandise a été livrée`,
+    { reservationId: reservation._id },
+    { sms: true }
+  ).catch(err => console.error('Notification error:', err.message));
+
+  res.status(200).json({ success: true, data: reservation });
+});
+
+// GET /api/v1/reservations/transport-missions — transporter sees their missions
+exports.getTransportMissions = catchAsyncErrors(async (req, res, next) => {
+  const { status, page, limit } = req.query;
+  const query = { transporter: req.user.id };
+  if (status) query.transportStatus = status;
+
+  const result = await paginate(
+    Reservation, query, page, limit,
+    [{ path: 'user', select: 'name phone' }, { path: 'storage', select: 'name address location' }]
+  );
+  res.status(200).json({ success: true, ...result });
+});
+
 // Search reservations by user, storage or status
 exports.searchReservations = catchAsyncErrors(async (req, res, next) => {
   const { user, storage, status, page, limit } = req.query;
