@@ -12,7 +12,7 @@ exports.getRegionUsers = catchAsyncErrors(async (req, res, next) => {
 
   const query = {
     location: { $regex: agent.assignedRegion, $options: 'i' },
-    role: { $in: ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR'] }
+    roles: { $in: ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR'] }
   };
 
   if (req.query.search) {
@@ -23,12 +23,12 @@ exports.getRegionUsers = catchAsyncErrors(async (req, res, next) => {
   }
 
   if (req.query.role) {
-    query.role = req.query.role;
+    query.roles = req.query.role;
   }
 
   const users = await User.find(query).select('-password');
-  const farmers = users.filter(u => u.role === 'AGRICULTEUR');
-  const owners = users.filter(u => ['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(u.role));
+  const farmers = users.filter(u => u.roles.includes('AGRICULTEUR'));
+  const owners = users.filter(u => u.roles.some(r => ['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(r)));
 
   res.status(200).json({
     success: true,

@@ -22,12 +22,14 @@ exports.isAuthenticatedUser = catchAsyncErrors(async (req, res, next) => {
     next()
 })
 
-// Handling users roles
+// Handling users roles — supports multi-role: user passes if they hold ANY of the allowed roles
 exports.authorizeRoles = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        const userRoles = req.user.roles || [];
+        const hasRole = userRoles.some(r => roles.includes(r));
+        if (!hasRole) {
             return next(
-                new ErrorHandler(`Role (${req.user.role}) is not allowed to acccess this resource`, 403))
+                new ErrorHandler(`Role (${userRoles.join(', ')}) is not allowed to access this resource`, 403))
         }
         next()
     }

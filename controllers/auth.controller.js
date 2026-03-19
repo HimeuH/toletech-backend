@@ -41,7 +41,8 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     email,
     password,
     phone,
-    role,
+    roles,
+    role, // legacy single-role support
     location,
     exploitationType,
     crops,
@@ -49,14 +50,23 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     companyRegistration,
     contactPerson,
     assignedRegion,
+    vehicleType,
+    vehicleCapacity,
+    vehiclePlate,
+    serviceZones,
   } = req.body;
+
+  // Accept roles array or fallback to legacy single role field
+  const userRoles = roles ? (Array.isArray(roles) ? roles : [roles])
+    : role ? [role]
+    : ['AGRICULTEUR'];
 
   const user = await User.create({
     name,
     email,
     password,
     phone,
-    role,
+    roles: userRoles,
     location,
     exploitationType,
     crops,
@@ -64,6 +74,10 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     companyRegistration,
     contactPerson,
     assignedRegion,
+    vehicleType,
+    vehicleCapacity,
+    vehiclePlate,
+    serviceZones,
     isVerified: phone ? false : true, // verified immediately if no phone
   });
 
@@ -254,6 +268,12 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
     "companyRegistration",
     "contactPerson",
     "assignedRegion",
+    "vehicleType",
+    "vehicleCapacity",
+    "vehiclePlate",
+    "serviceZones",
+    "isAvailableForTransport",
+    "payoutFrequencyDays",
   ];
   const newUserData = {};
   allowed.forEach((field) => {
@@ -329,10 +349,11 @@ exports.updateUser = catchAsyncErrors(async (req, res, next) => {
   const allowed = [
     "name",
     "email",
-    "role",
+    "roles",
     "isActive",
     "assignedRegion",
     "location",
+    "payoutFrequencyDays",
   ];
   const newUserData = {};
   allowed.forEach((field) => {
@@ -456,7 +477,7 @@ exports.createAgent = catchAsyncErrors(async (req, res, next) => {
     phone,
     assignedRegion,
     identificationNumber,
-    role: "AGENT",
+    roles: ["AGENT"],
     password,
     isActive: true,
     isVerified: true,

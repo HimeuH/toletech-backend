@@ -31,10 +31,10 @@ async function destroyPhotos(photos) {
 exports.createStorage = catchAsyncErrors(async (req, res, next) => {
   // Agent proxy: allow creating on behalf of an owner
   let ownerId = req.user.id;
-  if (req.user.role === 'AGENT' && req.body.ownerId) {
+  if (req.user.roles.includes('AGENT') && req.body.ownerId) {
     const User = require('../models/User');
     const owner = await User.findById(req.body.ownerId);
-    if (!owner || !['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(owner.role)) {
+    if (!owner || !owner.roles.some(r => ['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(r))) {
       return next(new ErrorHandler('Invalid owner specified', 400));
     }
     ownerId = req.body.ownerId;
@@ -82,7 +82,7 @@ exports.updateStorage = catchAsyncErrors(async (req, res, next) => {
   let storage = await Storage.findById(req.params.id);
   if (!storage) return next(new ErrorHandler('Storage not found', 404));
 
-  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && storage.owner?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -107,7 +107,7 @@ exports.deleteStorage = catchAsyncErrors(async (req, res, next) => {
   const storage = await Storage.findById(req.params.id);
   if (!storage) return next(new ErrorHandler('Storage not found', 404));
 
-  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && storage.owner?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -124,7 +124,7 @@ exports.deleteStoragePhoto = catchAsyncErrors(async (req, res, next) => {
   const storage = await Storage.findById(req.params.id);
   if (!storage) return next(new ErrorHandler('Storage not found', 404));
 
-  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && storage.owner?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 

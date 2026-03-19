@@ -9,10 +9,10 @@ const notify = require('../utils/notify');
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   // BE-024: agent proxy — reserve on behalf of a farmer
   let userId = req.user.id;
-  if (req.user.role === 'AGENT' && req.body.onBehalfOf) {
+  if (req.user.roles.includes('AGENT') && req.body.onBehalfOf) {
     const User = require('../models/User');
     const farmer = await User.findById(req.body.onBehalfOf);
-    if (!farmer || farmer.role !== 'AGRICULTEUR') {
+    if (!farmer || !farmer.roles.includes('AGRICULTEUR')) {
       return next(new ErrorHandler('Invalid farmer specified for onBehalfOf', 400));
     }
     userId = req.body.onBehalfOf;
@@ -83,13 +83,13 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.findById(id);
   if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
 
-  if (req.user.role !== 'ADMIN' && reservation.user?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && reservation.user?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
   // Status transition rules (BE-013)
   if (updates.status && updates.status !== reservation.status) {
-    if (req.user.role !== 'ADMIN') {
+    if (!req.user.roles.includes('ADMIN')) {
       // Non-admin users (farmers) can only cancel
       if (updates.status !== 'ANNULÉ') {
         return next(new ErrorHandler('Only admin can change to this status', 403));
@@ -196,7 +196,7 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Verify caller owns the storage (or is ADMIN)
-  if (req.user.role !== 'ADMIN' && reservation.storage?.owner?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && reservation.storage?.owner?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -237,7 +237,7 @@ exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
   const isOwner = reservation.user?._id?.toString() === req.user.id;
   const isStorageOwner = reservation.storage?.owner?._id?.toString() === req.user.id;
 
-  if (req.user.role !== 'ADMIN' && !isOwner && !isStorageOwner) {
+  if (!req.user.roles.includes('ADMIN') && !isOwner && !isStorageOwner) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -249,7 +249,7 @@ exports.deleteReservation = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.findById(req.params.id);
   if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
 
-  if (req.user.role !== 'ADMIN' && reservation.user?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && reservation.user?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -264,13 +264,14 @@ exports.searchReservations = catchAsyncErrors(async (req, res, next) => {
 
   if (status) query.status = status;
 
-  if (req.user.role === 'AGRICULTEUR') {
+  const userRoles = req.user.roles || [];
+  if (userRoles.includes('AGRICULTEUR') && !userRoles.includes('ADMIN') && !userRoles.includes('AGENT')) {
     query.user = req.user.id;
     if (storage) query.storage = storage;
-  } else if (req.user.role === 'PROPRIETAIRE' || req.user.role === 'TRANSFORMATEUR') {
+  } else if (userRoles.some(r => ['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(r)) && !userRoles.includes('ADMIN')) {
     const ownedStorages = await Storage.find({ owner: req.user.id }).select('_id');
     query.storage = { $in: ownedStorages.map((s) => s._id) };
-  } else if (req.user.role === 'AGENT' || req.user.role === 'ADMIN') {
+  } else if (userRoles.includes('AGENT') || userRoles.includes('ADMIN')) {
     if (user) query.user = user;
     if (storage) query.storage = storage;
   } else {

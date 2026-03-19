@@ -51,12 +51,13 @@ exports.getMyBillings = catchAsyncErrors(async (req, res, next) => {
   const { page, limit } = req.query;
   let query = {};
 
-  if (req.user.role === 'AGRICULTEUR') {
+  const userRoles = req.user.roles || [];
+  if (userRoles.includes('AGRICULTEUR') && !userRoles.includes('ADMIN')) {
     query.user = req.user.id;
-  } else if (req.user.role === 'PROPRIETAIRE' || req.user.role === 'TRANSFORMATEUR') {
+  } else if (userRoles.some(r => ['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(r)) && !userRoles.includes('ADMIN')) {
     const storages = await Storage.find({ owner: req.user.id }).select('_id');
     query.storage = { $in: storages.map(s => s._id) };
-  } else if (req.user.role === 'ADMIN') {
+  } else if (userRoles.includes('ADMIN')) {
     // admin can use this endpoint too — no filter
   } else {
     return next(new ErrorHandler('Forbidden', 403));
@@ -75,7 +76,7 @@ exports.getBillingsByStorage = catchAsyncErrors(async (req, res, next) => {
   const storage = await Storage.findById(req.params.storageId);
   if (!storage) return next(new ErrorHandler('Storage not found', 404));
 
-  if (req.user.role !== 'ADMIN' && storage.owner?.toString() !== req.user.id) {
+  if (!req.user.roles.includes('ADMIN') && storage.owner?.toString() !== req.user.id) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -97,7 +98,7 @@ exports.getBillingById = catchAsyncErrors(async (req, res, next) => {
   const storageDoc = await Storage.findById(billing.storage?._id);
   const isStorageOwner = storageDoc?.owner?.toString() === req.user.id;
 
-  if (req.user.role !== 'ADMIN' && !isOwner && !isStorageOwner) {
+  if (!req.user.roles.includes('ADMIN') && !isOwner && !isStorageOwner) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 

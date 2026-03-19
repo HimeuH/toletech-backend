@@ -23,10 +23,10 @@ const userSchema = new mongoose.Schema(
       select: false
     },
     phone: { type: String, unique: true, sparse: true },
-    role: {
-      type: String,
-      enum: ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT', 'ADMIN'],
-      default: 'AGRICULTEUR'
+    roles: {
+      type: [String],
+      enum: ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR', 'TRANSPORTEUR', 'AGENT', 'ADMIN'],
+      default: ['AGRICULTEUR']
     },
     avatar: {
       public_id: String,
@@ -48,6 +48,16 @@ const userSchema = new mongoose.Schema(
     assignedRegion: String,
     identificationNumber: String,
 
+    // TRANSPORTEUR fields
+    vehicleType: String,
+    vehicleCapacity: Number,
+    vehiclePlate: String,
+    serviceZones: [String],
+    isAvailableForTransport: { type: Boolean, default: true },
+
+    // Payout config (PROPRIETAIRE / TRANSPORTEUR)
+    payoutFrequencyDays: { type: Number, default: 15 },
+
     // Account status
     isActive: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
@@ -68,7 +78,7 @@ userSchema.pre('save', async function (next) {
 
 userSchema.methods.getJwtToken = function () {
   return jwt.sign(
-    { id: this._id, role: this.role },
+    { id: this._id, roles: this.roles },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_TIME || '7d' }
   );
@@ -87,5 +97,10 @@ userSchema.methods.getResetPasswordToken = function () {
   this.resetPasswordExpire = Date.now() + 30 * 60 * 1000;
   return resetToken;
 };
+
+// Convenience getter: primary role (first in array)
+userSchema.virtual('role').get(function () {
+  return this.roles && this.roles.length > 0 ? this.roles[0] : null;
+});
 
 module.exports = mongoose.model('User', userSchema);
