@@ -465,6 +465,17 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+// S7-FE-01: Update notification channel preferences   =>   PUT /api/v1/auth/me/notif-prefs
+exports.updateNotifPrefs = catchAsyncErrors(async (req, res, next) => {
+  const { sms, whatsapp } = req.body;
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { notifPrefs: { sms: sms !== false, whatsapp: !!whatsapp } },
+    { new: true }
+  );
+  res.status(200).json({ success: true, data: user });
+});
+
 // ─── SPRINT 5: Secured phone change flow ─────────────────────────────────────
 
 // S5-BE-02: Step 1 — request identity verification OTP

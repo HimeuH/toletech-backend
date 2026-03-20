@@ -11,6 +11,8 @@ const cron = require('node-cron');
 const Wallet = require('../models/Wallet');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const notify = require('./notify');
+const templates = require('./notificationTemplates');
 
 async function runPayoutJob() {
   console.log('[payoutJob] Running payout check…');
@@ -54,6 +56,15 @@ async function runPayoutJob() {
 
       processed++;
       console.log(`[payoutJob] Payout ${amount} XOF → ${user.name} (wallet ${wallet._id})`);
+
+      // S7-BE-03: notify user via in-app + SMS + WhatsApp
+      const tpl = templates.PAYOUT_PROCESSED({ amount, frequencyDays: freqDays });
+      void notify(user._id, 'GENERAL', tpl.title, tpl.inApp, { walletId: wallet._id }, {
+        sms: true,
+        whatsapp: true,
+        smsText: tpl.sms,
+        waText: tpl.whatsapp,
+      }).catch(err => console.error('[payoutJob] Notify failed:', err?.message));
     } catch (err) {
       console.error(`[payoutJob] Failed for wallet ${wallet._id}:`, err.message);
     }

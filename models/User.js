@@ -64,6 +64,12 @@ const userSchema = new mongoose.Schema(
     mustChangePassword: { type: Boolean, default: false },
     pendingPhone: String,
 
+    // Notification channel preferences (S7)
+    notifPrefs: {
+      sms:      { type: Boolean, default: true },
+      whatsapp: { type: Boolean, default: false },
+    },
+
     resetPasswordToken: String,
     resetPasswordExpire: Date,
 
