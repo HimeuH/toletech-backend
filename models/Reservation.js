@@ -57,7 +57,23 @@ const reservationSchema = new mongoose.Schema(
     },
     transportRequestedAt: Date,
     transportAcceptedAt: Date,
-    deliveredAt: Date
+    deliveredAt: Date,
+
+    // S8-BE-01: litige
+    dispute: {
+      status: {
+        type: String,
+        enum: ['NONE', 'OPEN', 'RESOLVED'],
+        default: 'NONE'
+      },
+      reason: String,
+      description: String,
+      openedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      openedAt: Date,
+      resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      resolvedAt: Date,
+      resolution: String
+    }
   },
   { timestamps: true }
 );

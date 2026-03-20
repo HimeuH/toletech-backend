@@ -78,6 +78,22 @@ module.exports = {
     whatsapp: `📦 *ToleTech* — Livraison confirmée\nVotre marchandise depuis *${storageName}* a bien été livrée.\nMerci d'utiliser ToleTech !`,
   }),
 
+  // ─── Litiges ──────────────────────────────────────────────────────────────
+
+  DISPUTE_OPENED: ({ farmerName, storageName, reason }) => ({
+    title: 'Nouveau litige ouvert',
+    inApp: `${farmerName} a ouvert un litige sur "${storageName}" : ${reason}.`,
+    sms: `ToleTech: Litige ouvert par ${farmerName} sur ${storageName}. Motif: ${reason}.`,
+    whatsapp: `⚠️ *ToleTech* — Litige ouvert\n*${farmerName}* a signalé un problème sur *${storageName}*.\nMotif : ${reason}\nConnectez-vous pour traiter le litige.`,
+  }),
+
+  DISPUTE_RESOLVED: ({ storageName, resolution }) => ({
+    title: 'Litige résolu',
+    inApp: `Votre litige sur "${storageName}" a été résolu.`,
+    sms: `ToleTech: Votre litige sur ${storageName} a été résolu. ${resolution}`,
+    whatsapp: `✅ *ToleTech* — Litige résolu\nVotre litige concernant *${storageName}* a été traité par l'administration.\nRésolution : ${resolution}`,
+  }),
+
   // ─── Paiements & Wallet ───────────────────────────────────────────────────
 
   PAYMENT_DUE: ({ storageName, amount }) => ({

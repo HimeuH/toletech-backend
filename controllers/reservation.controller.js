@@ -66,11 +66,23 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   res.status(201).json({ success: true, data: reservation });
 });
 
-// Get all reservations (admin)
+// Get all reservations (admin) — S8-BE-03: filtres avancés
 exports.getAllReservations = catchAsyncErrors(async (req, res, next) => {
-  const { page, limit } = req.query;
+  const { page, limit, status, userId, storageId, disputeStatus, dateFrom, dateTo } = req.query;
+  const query = {};
+
+  if (status) query.status = status;
+  if (userId) query.user = userId;
+  if (storageId) query.storage = storageId;
+  if (disputeStatus) query['dispute.status'] = disputeStatus;
+  if (dateFrom || dateTo) {
+    query.reservedFrom = {};
+    if (dateFrom) query.reservedFrom.$gte = new Date(dateFrom);
+    if (dateTo) query.reservedFrom.$lte = new Date(dateTo);
+  }
+
   const result = await paginate(
-    Reservation, {}, page, limit,
+    Reservation, query, page, limit,
     [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location' }]
   );
   res.status(200).json({ success: true, ...result });
@@ -417,6 +429,157 @@ exports.getTransportMissions = catchAsyncErrors(async (req, res, next) => {
     [{ path: 'user', select: 'name phone' }, { path: 'storage', select: 'name address location' }]
   );
   res.status(200).json({ success: true, ...result });
+});
+
+// S8-BE-02: Admin adjust reservation (dates, quantity, notes)
+exports.adjustReservation = catchAsyncErrors(async (req, res, next) => {
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  const { reservedFrom, reservedTo, quantity, quantityUnit, notes, message } = req.body;
+
+  if (reservedFrom) reservation.reservedFrom = new Date(reservedFrom);
+  if (reservedTo) reservation.reservedTo = new Date(reservedTo);
+  if (quantity !== undefined) reservation.quantity = quantity;
+  if (quantityUnit !== undefined) reservation.quantityUnit = quantityUnit;
+  if (notes !== undefined) reservation.notes = notes;
+
+  reservation.statusHistory.push({
+    status: reservation.status,
+    changedBy: req.user.id,
+    message: message || 'Ajustement administrateur'
+  });
+
+  await reservation.save();
+
+  // Notify the farmer of the adjustment
+  await notify(
+    reservation.user,
+    'GENERAL',
+    'Réservation ajustée',
+    message || 'Votre réservation a été ajustée par un administrateur.',
+    { reservationId: reservation._id }
+  ).catch(err => console.error('Notification error:', err.message));
+
+  res.status(200).json({ success: true, message: 'Reservation adjusted', data: reservation });
+});
+
+// S8-BE-02: Open a dispute on a reservation
+exports.openDispute = catchAsyncErrors(async (req, res, next) => {
+  const { reason, description } = req.body;
+  if (!reason) return next(new ErrorHandler('reason is required', 400));
+
+  const reservation = await Reservation.findById(req.params.id)
+    .populate('storage', 'owner name');
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  // Only the farmer (reservation owner) or storage owner can open a dispute
+  const isReservationOwner = reservation.user?.toString() === req.user.id;
+  const isStorageOwner = reservation.storage?.owner?.toString() === req.user.id;
+  if (!req.user.roles.includes('ADMIN') && !isReservationOwner && !isStorageOwner) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  if (reservation.dispute?.status === 'OPEN') {
+    return next(new ErrorHandler('Un litige est déjà ouvert sur cette réservation', 400));
+  }
+
+  if (!['CONFIRMÉ', 'ANNULÉ'].includes(reservation.status)) {
+    return next(new ErrorHandler('Les litiges ne peuvent être ouverts que sur des réservations confirmées ou annulées', 400));
+  }
+
+  reservation.dispute = {
+    status: 'OPEN',
+    reason,
+    description: description || '',
+    openedBy: req.user.id,
+    openedAt: new Date()
+  };
+
+  reservation.statusHistory.push({
+    status: reservation.status,
+    changedBy: req.user.id,
+    message: `Litige ouvert : ${reason}`
+  });
+
+  await reservation.save();
+
+  // Notify admins — we notify the storage owner if opened by farmer, and vice versa
+  const User = require('../models/User');
+  const admins = await User.find({ roles: 'ADMIN' }).select('_id');
+  const storageData = await Storage.findById(reservation.storage?._id || reservation.storage).select('name owner');
+  const notifTargets = admins.map(a => a._id);
+  if (isReservationOwner && storageData?.owner && storageData.owner.toString() !== req.user.id) {
+    notifTargets.push(storageData.owner);
+  }
+  if (isStorageOwner) {
+    notifTargets.push(reservation.user);
+  }
+
+  const opener = await User.findById(req.user.id).select('name');
+  for (const targetId of notifTargets) {
+    await notify(
+      targetId,
+      'GENERAL',
+      'Nouveau litige ouvert',
+      `${opener?.name || 'Un utilisateur'} a ouvert un litige sur une réservation (${storageData?.name || ''}). Motif : ${reason}`,
+      { reservationId: reservation._id },
+      { sms: false }
+    ).catch(err => console.error('Notification error:', err.message));
+  }
+
+  res.status(200).json({ success: true, message: 'Dispute opened', data: reservation });
+});
+
+// S8-BE-02: Admin resolve a dispute
+exports.resolveDispute = catchAsyncErrors(async (req, res, next) => {
+  const { resolution } = req.body;
+  if (!resolution) return next(new ErrorHandler('resolution is required', 400));
+
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  if (reservation.dispute?.status !== 'OPEN') {
+    return next(new ErrorHandler('No open dispute on this reservation', 400));
+  }
+
+  reservation.dispute.status = 'RESOLVED';
+  reservation.dispute.resolvedBy = req.user.id;
+  reservation.dispute.resolvedAt = new Date();
+  reservation.dispute.resolution = resolution;
+
+  reservation.statusHistory.push({
+    status: reservation.status,
+    changedBy: req.user.id,
+    message: `Litige résolu : ${resolution}`
+  });
+
+  await reservation.save();
+
+  const storageData = await Storage.findById(reservation.storage).select('name owner');
+
+  // Notify farmer
+  await notify(
+    reservation.user,
+    'GENERAL',
+    'Litige résolu',
+    `Votre litige sur "${storageData?.name || 'votre réservation'}" a été résolu. ${resolution}`,
+    { reservationId: reservation._id },
+    { sms: true }
+  ).catch(err => console.error('Notification error:', err.message));
+
+  // Notify storage owner
+  if (storageData?.owner) {
+    await notify(
+      storageData.owner,
+      'GENERAL',
+      'Litige résolu',
+      `Le litige sur "${storageData?.name || 'votre entrepôt'}" a été résolu par l'administration.`,
+      { reservationId: reservation._id }
+    ).catch(err => console.error('Notification error:', err.message));
+  }
+
+  res.status(200).json({ success: true, message: 'Dispute resolved', data: reservation });
 });
 
 // Search reservations by user, storage or status
