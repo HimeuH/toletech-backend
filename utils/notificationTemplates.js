@@ -105,8 +105,8 @@ module.exports = {
 
   PAYOUT_PROCESSED: ({ amount, frequencyDays }) => ({
     title: 'Virement reçu',
-    inApp: `Virement automatique de ${fmt(amount)} effectué (fréquence J+${frequencyDays}).`,
-    sms: `ToleTech: Virement de ${fmt(amount)} effectué sur votre compte. J+${frequencyDays}.`,
-    whatsapp: `💰 *ToleTech* — Virement reçu\nMontant : *${fmt(amount)}*\nVotre virement automatique (J+${frequencyDays}) a été traité.\nConsultez votre wallet pour les détails.`,
+    inApp: `Votre virement automatique de ${fmt(amount)} a été effectué (tous les ${frequencyDays} jours).`,
+    sms: `ToleTech: Virement de ${fmt(amount)} effectué sur votre compte. Fréquence : tous les ${frequencyDays} jours.`,
+    whatsapp: `💰 *ToleTech* — Virement reçu\nMontant : *${fmt(amount)}*\nVotre virement automatique (tous les ${frequencyDays} jours) a bien été traité.\nConsultez votre wallet pour les détails.`,
   }),
 };
