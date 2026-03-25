@@ -10,6 +10,7 @@ const {
   getCommissionConfigs,
   createCommissionConfig,
   updateCommissionConfig,
+  deleteCommissionConfig,
   getProviders,
   toggleProvider
 } = require('../controllers/payment.controller');
@@ -35,7 +36,8 @@ router
 
 router
   .route('/commission-configs/:id')
-  .put(isAuthenticatedUser, authorizeRoles('ADMIN'), updateCommissionConfig);
+  .put(isAuthenticatedUser, authorizeRoles('ADMIN'), updateCommissionConfig)
+  .delete(isAuthenticatedUser, authorizeRoles('ADMIN'), deleteCommissionConfig);
 
 // Payment providers — read for all authenticated users, write for admin only
 router.get('/providers', isAuthenticatedUser, getProviders);

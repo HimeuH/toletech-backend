@@ -226,6 +226,16 @@ exports.updateCommissionConfig = catchAsyncErrors(async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// DELETE /api/v1/payments/commission-configs/:id — admin only
+// ---------------------------------------------------------------------------
+exports.deleteCommissionConfig = catchAsyncErrors(async (req, res, next) => {
+  const CommissionConfig = require('../models/CommissionConfig');
+  const config = await CommissionConfig.findByIdAndDelete(req.params.id);
+  if (!config) return next(new ErrorHandler('Commission config not found', 404));
+  res.status(200).json({ success: true, message: 'Commission config deleted' });
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/v1/payments/providers
 // Returns all provider configs (seeded on first call).
 // Authenticated users see the full list so the UI knows what to show.
