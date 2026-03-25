@@ -7,10 +7,34 @@
  */
 const Billing = require('../models/Billing');
 const Transaction = require('../models/Transaction');
+const PaymentProviderConfig = require('../models/PaymentProviderConfig');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const payment = require('../utils/payment');
 const { processPaidBilling } = require('./billing.controller');
+
+// Default seed — auto-created on first GET /payments/providers
+const DEFAULT_PROVIDERS = [
+  { provider: 'WAVE', label: 'Wave', isEnabled: true },
+  { provider: 'ORANGE_MONEY', label: 'Orange Money', isEnabled: false }
+];
+
+async function seedProviders() {
+  for (const defaults of DEFAULT_PROVIDERS) {
+    await PaymentProviderConfig.findOneAndUpdate(
+      { provider: defaults.provider },
+      { $setOnInsert: defaults },
+      { upsert: true, new: true }
+    );
+  }
+}
+
+async function assertProviderEnabled(provider) {
+  const config = await PaymentProviderConfig.findOne({ provider });
+  if (!config || !config.isEnabled) {
+    throw new ErrorHandler(`Le fournisseur de paiement "${provider}" est désactivé`, 400);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/payments/checkout
@@ -21,6 +45,8 @@ exports.initiateCheckout = catchAsyncErrors(async (req, res, next) => {
   if (!billingId) return next(new ErrorHandler('billingId is required', 400));
 
   const activeProvider = (provider || process.env.DEFAULT_PAYMENT_PROVIDER || 'WAVE').toUpperCase();
+
+  await assertProviderEnabled(activeProvider);
 
   const billing = await Billing.findById(billingId).populate('user', 'name');
   if (!billing) return next(new ErrorHandler('Billing not found', 404));
@@ -176,5 +202,39 @@ exports.updateCommissionConfig = catchAsyncErrors(async (req, res, next) => {
     runValidators: true
   });
   if (!config) return next(new ErrorHandler('Commission config not found', 404));
+  res.status(200).json({ success: true, data: config });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/payments/providers
+// Returns all provider configs (seeded on first call).
+// Authenticated users see the full list so the UI knows what to show.
+// ---------------------------------------------------------------------------
+exports.getProviders = catchAsyncErrors(async (req, res) => {
+  await seedProviders();
+  const configs = await PaymentProviderConfig.find().sort({ provider: 1 });
+  res.status(200).json({ success: true, data: configs });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/v1/payments/providers/:provider — admin only
+// Body: { isEnabled: boolean }
+// ---------------------------------------------------------------------------
+exports.toggleProvider = catchAsyncErrors(async (req, res, next) => {
+  const { provider } = req.params;
+  const { isEnabled } = req.body;
+
+  if (typeof isEnabled !== 'boolean') {
+    return next(new ErrorHandler('isEnabled (boolean) is required', 400));
+  }
+
+  const config = await PaymentProviderConfig.findOneAndUpdate(
+    { provider: provider.toUpperCase() },
+    { isEnabled, updatedBy: req.user.id },
+    { new: true }
+  );
+
+  if (!config) return next(new ErrorHandler('Provider not found', 404));
+
   res.status(200).json({ success: true, data: config });
 });

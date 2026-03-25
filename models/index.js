@@ -5,6 +5,7 @@ const Billing = require('./Billing');
 const Invoice = require('./Invoice');
 const Otp = require('./Otp');
 const CommissionConfig = require('./CommissionConfig');
+const PaymentProviderConfig = require('./PaymentProviderConfig');
 
 module.exports = {
   User,
@@ -13,5 +14,6 @@ module.exports = {
   Billing,
   Invoice,
   Otp,
-  CommissionConfig
+  CommissionConfig,
+  PaymentProviderConfig
 };

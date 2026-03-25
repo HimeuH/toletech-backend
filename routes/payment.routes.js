@@ -7,7 +7,9 @@ const {
   getPaymentHistory,
   getCommissionConfigs,
   createCommissionConfig,
-  updateCommissionConfig
+  updateCommissionConfig,
+  getProviders,
+  toggleProvider
 } = require('../controllers/payment.controller');
 
 // Webhook — no auth, raw body is preserved by app.js middleware
@@ -28,5 +30,9 @@ router
 router
   .route('/commission-configs/:id')
   .put(isAuthenticatedUser, authorizeRoles('ADMIN'), updateCommissionConfig);
+
+// Payment providers — read for all authenticated users, write for admin only
+router.get('/providers', isAuthenticatedUser, getProviders);
+router.put('/providers/:provider', isAuthenticatedUser, authorizeRoles('ADMIN'), toggleProvider);
 
 module.exports = router;
