@@ -31,7 +31,22 @@ const billingSchema = new mongoose.Schema(
       enum: ['PENDING', 'PAID', 'CANCELLED'],
       default: 'PENDING'
     },
-    paidAt: Date
+    paidAt: Date,
+    // Payment provider fields
+    paymentProvider: {
+      type: String,
+      enum: ['WAVE', 'ORANGE_MONEY'],
+      default: null
+    },
+    checkoutSessionId: {
+      type: String,
+      default: null,
+      index: true
+    },
+    providerRef: {
+      type: String,
+      default: null
+    }
   },
   { timestamps: true }
 );

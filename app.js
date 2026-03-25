@@ -62,6 +62,11 @@ const forgotPasswordLimiter = rateLimit({
 ====================== */
 app.use(helmet());
 app.use(generalLimiter);
+
+// Payment webhooks need raw body for HMAC signature verification.
+// Must be registered BEFORE express.json() so the buffer is preserved.
+app.use('/api/v1/payments/webhook', express.raw({ type: '*/*' }));
+
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -87,6 +92,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const transporterRoutes = require('./routes/transporter.routes');
 const reviewRoutes = require('./routes/review.routes');
 const walletRoutes = require('./routes/wallet.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1/auth/register', registerLimiter);
@@ -103,6 +109,7 @@ app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/transporters', transporterRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 /* ======================
    Frontend (PROD)

@@ -38,6 +38,24 @@ const transactionSchema = new mongoose.Schema(
     processedAt: {
       type: Date,
       default: Date.now
+    },
+    // Payment provider fields — set for CHECKOUT and PAYOUT transactions
+    provider: {
+      type: String,
+      enum: ['WAVE', 'ORANGE_MONEY'],
+      default: null
+    },
+    providerRef: {
+      type: String,
+      default: null
+    },
+    providerStatus: {
+      type: String,
+      default: null
+    },
+    checkoutSessionId: {
+      type: String,
+      default: null
     }
   },
   { timestamps: true }

@@ -4,9 +4,7 @@ const Storage = require('../models/Storage');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
-
-const COMMISSION_STORAGE = parseFloat(process.env.COMMISSION_STORAGE_PERCENT || '10') / 100;
-const COMMISSION_TRANSPORT = parseFloat(process.env.COMMISSION_TRANSPORT_PERCENT || '15') / 100;
+const { computeCommission } = require('../utils/payment');
 
 // Internal helper — called by reservation controller on confirmation
 exports.generateBilling = async (reservationId) => {
@@ -121,6 +119,52 @@ exports.getBillingById = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, data: billing });
 });
 
+/**
+ * processPaidBilling — shared helper called when a billing transitions to PAID.
+ * Deducts commission (using CommissionConfig or env fallback), credits owner wallet,
+ * and records all transactions.
+ * Exported so the payment webhook controller can reuse it without duplication.
+ */
+exports.processPaidBilling = async (billing) => {
+  const populatedBilling = await Billing.findById(billing._id)
+    .populate({ path: 'reservation', populate: { path: 'storage', select: 'owner' } });
+  const ownerId = populatedBilling?.reservation?.storage?.owner;
+  if (!ownerId) return;
+
+  const storageId = populatedBilling?.reservation?.storage?._id;
+  const { commissionAmount, mode, value } = await computeCommission(
+    billing.totalAmount,
+    'STORAGE',
+    { partnerId: ownerId, storageId }
+  );
+  const net = billing.totalAmount - commissionAmount;
+
+  const { creditWallet, getOrCreateWallet } = require('./wallet.controller');
+  const Transaction = require('../models/Transaction');
+  const wallet = await getOrCreateWallet(ownerId);
+
+  const commissionLabel = mode === 'FIXED'
+    ? `Commission Toletech (${commissionAmount} XOF fixe) — facture #${billing._id}`
+    : `Commission Toletech (${value}%) — facture #${billing._id}`;
+
+  await Transaction.create({
+    wallet: wallet._id,
+    type: 'COMMISSION',
+    amount: commissionAmount,
+    description: commissionLabel,
+    relatedBilling: billing._id,
+    status: 'COMPLETED',
+    processedAt: new Date()
+  });
+
+  await creditWallet(
+    ownerId,
+    net,
+    `Paiement net stockage — facture #${billing._id}`,
+    { relatedBilling: billing._id, type: 'ESCROW_RELEASE' }
+  );
+};
+
 // PUT /api/v1/billings/:id/status — admin only
 exports.updateBillingStatus = catchAsyncErrors(async (req, res, next) => {
   const { status } = req.body;
@@ -137,38 +181,8 @@ exports.updateBillingStatus = catchAsyncErrors(async (req, res, next) => {
     billing.paidAt = new Date();
     await billing.save();
 
-    // S4-BE-03: on PAID — release escrow, deduct commission, credit owner wallet
     try {
-      const populatedBilling = await Billing.findById(billing._id)
-        .populate({ path: 'reservation', populate: { path: 'storage', select: 'owner' } });
-      const ownerId = populatedBilling?.reservation?.storage?.owner;
-
-      if (ownerId) {
-        const commission = Math.round(billing.totalAmount * COMMISSION_STORAGE);
-        const net = billing.totalAmount - commission;
-        const { creditWallet, getOrCreateWallet } = require('./wallet.controller');
-        const Transaction = require('../models/Transaction');
-        const wallet = await getOrCreateWallet(ownerId);
-
-        // Record commission transaction
-        await Transaction.create({
-          wallet: wallet._id,
-          type: 'COMMISSION',
-          amount: commission,
-          description: `Commission Toletech (${Math.round(COMMISSION_STORAGE * 100)}%) — facture #${billing._id}`,
-          relatedBilling: billing._id,
-          status: 'COMPLETED',
-          processedAt: new Date()
-        });
-
-        // Credit net amount
-        await creditWallet(
-          ownerId,
-          net,
-          `Paiement net stockage — facture #${billing._id}`,
-          { relatedBilling: billing._id, type: 'ESCROW_RELEASE' }
-        );
-      }
+      await exports.processPaidBilling(billing);
     } catch (err) {
       console.error('Wallet credit error:', err.message);
     }
