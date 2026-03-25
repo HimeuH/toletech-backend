@@ -98,22 +98,46 @@ async function sendPayout({ phoneNumber, amount, currency, note, idempotencyKey 
  * @returns {object} parsed event
  * @throws if signature is invalid or secret is not configured
  */
-function verifyWebhookSignature(rawBody, signature) {
+function verifyWebhookSignature(rawBody, signatureHeader) {
   const secret = process.env.WAVE_WEBHOOK_SECRET;
   if (!secret) throw new Error('WAVE_WEBHOOK_SECRET is not configured');
-  if (!signature) throw new Error('Missing wave-signature header');
+  if (!signatureHeader) throw new Error('Missing wave-signature header');
 
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex');
-
-  const sigBuffer = Buffer.from(signature);
-  const expBuffer = Buffer.from(expected);
-
-  if (sigBuffer.length !== expBuffer.length || !crypto.timingSafeEqual(sigBuffer, expBuffer)) {
-    throw new Error('Invalid Wave webhook signature');
+  // Header format: t=<timestamp>,v1=<hmac>
+  let timestamp = null;
+  const signatures = [];
+  for (const part of signatureHeader.split(',')) {
+    if (part.startsWith('t=')) timestamp = part.slice(2);
+    else if (part.startsWith('v1=')) signatures.push(part.slice(3));
   }
+
+  if (!timestamp || signatures.length === 0) {
+    throw new Error('Malformed wave-signature header');
+  }
+
+  // Reject replays older than 5 minutes
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) {
+    throw new Error('Wave webhook timestamp too old');
+  }
+
+  const signedPayload = timestamp + rawBody.toString();
+  const expected = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+
+  console.log('[wave-sig-debug] header  :', signatureHeader);
+  console.log('[wave-sig-debug] timestamp:', timestamp);
+  console.log('[wave-sig-debug] body_len :', rawBody.length, '| body_type:', typeof rawBody, Buffer.isBuffer(rawBody) ? 'Buffer' : 'not-buffer');
+  console.log('[wave-sig-debug] expected :', expected);
+  console.log('[wave-sig-debug] received :', signatures);
+
+  const valid = signatures.some(sig => {
+    try {
+      const a = Buffer.from(sig);
+      const b = Buffer.from(expected);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch { return false; }
+  });
+
+  if (!valid) throw new Error('Invalid Wave webhook signature');
 
   return JSON.parse(rawBody.toString());
 }

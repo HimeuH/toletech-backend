@@ -62,13 +62,14 @@ exports.initiateCheckout = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  const frontendBase = process.env.FRONTEND_URL || 'http://localhost:4200';
+  // Wave requires HTTPS — use backend (ngrok) as redirect proxy so local dev works
+  const backendBase = process.env.BACKEND_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
   const session = await payment.createCheckout(activeProvider, {
     amount: billing.totalAmount,
     currency: billing.currency || 'XOF',
     clientRef: billing._id.toString(),
-    successUrl: successUrl || `${frontendBase}/payment/success?billing=${billing._id}`,
-    errorUrl: errorUrl || `${frontendBase}/payment/error?billing=${billing._id}`
+    successUrl: `${backendBase}/api/v1/payments/redirect/success?billing=${billing._id}`,
+    errorUrl: `${backendBase}/api/v1/payments/redirect/error?billing=${billing._id}`
   });
 
   billing.checkoutSessionId = session.id;
@@ -82,6 +83,22 @@ exports.initiateCheckout = catchAsyncErrors(async (req, res, next) => {
     provider: activeProvider
   });
 });
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/payments/redirect/success|error
+// Wave calls these HTTPS URLs, we redirect the browser to the local frontend
+// ---------------------------------------------------------------------------
+exports.redirectSuccess = (req, res) => {
+  const frontendBase = process.env.FRONTEND_URL || 'http://localhost:4200';
+  const billing = req.query.billing || '';
+  res.redirect(`${frontendBase}/#/facturation/payment/success?billing=${billing}`);
+};
+
+exports.redirectError = (req, res) => {
+  const frontendBase = process.env.FRONTEND_URL || 'http://localhost:4200';
+  const billing = req.query.billing || '';
+  res.redirect(`${frontendBase}/#/facturation/payment/error?billing=${billing}`);
+};
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/payments/webhook/:provider
@@ -103,17 +120,20 @@ exports.handleWebhook = async (req, res) => {
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
-  // Wave sends checkout.session.completed; normalise across providers
+  // Wave payload: { type: 'checkout.session.completed', data: { id, payment_status, transaction_id, client_reference, ... } }
+  const data = event.data || event; // normalise: Wave wraps in data, OM may not
+  const paymentStatus = data.payment_status || data.status || '';
   const isPaymentSuccess =
-    event.type === 'checkout.session.completed' ||
-    event.status === 'succeeded' ||
-    event.status === 'COMPLETED';
+    event.type === 'checkout.session.completed'
+      ? paymentStatus === 'succeeded'
+      : paymentStatus === 'succeeded' || paymentStatus === 'COMPLETED';
 
   if (!isPaymentSuccess) {
+    console.log(`[webhook:${provider}] payment_status="${paymentStatus}" — not succeeded, ignoring`);
     return res.status(200).json({ received: true });
   }
 
-  const sessionId = event.id || event.checkout_session_id;
+  const sessionId = data.id || data.checkout_session_id;
   if (!sessionId) {
     return res.status(200).json({ received: true });
   }
@@ -127,8 +147,8 @@ exports.handleWebhook = async (req, res) => {
 
   billing.status = 'PAID';
   billing.paidAt = new Date();
-  billing.providerRef = event.transaction_id || event.id;
-  billing.providerStatus = event.status;
+  billing.providerRef = data.transaction_id || data.id;
+  billing.providerStatus = paymentStatus;
   await billing.save();
 
   // Commission deduction + wallet crediting (same as manual admin PAID flow)

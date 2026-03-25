@@ -2,6 +2,10 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const connectDB = require('./db');
 const { User, Storage, Reservation, Billing, Otp } = require('../models');
+const CommissionConfig = require('../models/CommissionConfig');
+const PaymentProviderConfig = require('../models/PaymentProviderConfig');
+const Wallet = require('../models/Wallet');
+const Transaction = require('../models/Transaction');
 
 dotenv.config({ path: './config/config.env' });
 
@@ -18,13 +22,17 @@ const main = async () => {
   try {
     await connectDB();
 
-    // Clear collections
+    // Clear all collections
     await Promise.all([
       User.deleteMany({}),
       Storage.deleteMany({}),
       Reservation.deleteMany({}),
       Billing.deleteMany({}),
-      Otp.deleteMany({})
+      Otp.deleteMany({}),
+      Wallet.deleteMany({}),
+      Transaction.deleteMany({}),
+      CommissionConfig.deleteMany({}),
+      PaymentProviderConfig.deleteMany({})
     ]);
 
     // ── Users ──────────────────────────────────────────────────────────────────
@@ -35,7 +43,7 @@ const main = async () => {
         email: 'admin@toletech.com',
         password: 'Admin123!',
         phone: '+221770000000',
-        role: 'ADMIN',
+        roles: ['ADMIN'],
         location: 'Dakar',
         isActive: true,
         isVerified: true
@@ -47,7 +55,7 @@ const main = async () => {
         email: 'cheikh.ba@agent.toletech.com',
         password: 'Password123!',
         phone: '+221771000001',
-        role: 'AGENT',
+        roles: ['AGENT'],
         location: 'Thiès',
         assignedRegion: 'Thiès',
         identificationNumber: 'AGT-TH-001',
@@ -58,7 +66,7 @@ const main = async () => {
         name: 'Alioune Kane',
         email: 'alioune.kane@agent.toletech.com',
         password: 'Password123!',
-        phone: '+221771000002', role: 'AGENT',
+        phone: '+221771000002', roles: ['AGENT'],
         location: 'Kaolack',
         assignedRegion: 'Kaolack',
         identificationNumber: 'AGT-KL-001',
@@ -72,11 +80,12 @@ const main = async () => {
         email: 'awa.ndiaye@example.com',
         password: 'Password123!',
         phone: '+221772000001',
-        role: 'PROPRIETAIRE',
+        roles: ['PROPRIETAIRE'],
         location: 'Dakar',
         companyName: 'Grenier Ndiaye & Fils',
         companyRegistration: 'SN-DKR-2019-1142',
         contactPerson: 'Awa Ndiaye',
+        payoutFrequencyDays: 15,
         isActive: true,
         isVerified: true
       },
@@ -85,11 +94,12 @@ const main = async () => {
         email: 'serigne.mbaye@example.com',
         password: 'Password123!',
         phone: '+221772000002',
-        role: 'PROPRIETAIRE',
+        roles: ['PROPRIETAIRE'],
         location: 'Kaolack',
         companyName: 'Entrepôts du Sine-Saloum',
         companyRegistration: 'SN-KL-2020-0378',
         contactPerson: 'Serigne Mbaye',
+        payoutFrequencyDays: 15,
         isActive: true,
         isVerified: true
       },
@@ -98,11 +108,12 @@ const main = async () => {
         email: 'modou.fall@example.com',
         password: 'Password123!',
         phone: '+221772000003',
-        role: 'PROPRIETAIRE',
+        roles: ['PROPRIETAIRE'],
         location: 'Saint-Louis',
         companyName: 'Silos du Fleuve',
         companyRegistration: 'SN-SL-2018-0055',
         contactPerson: 'Modou Fall',
+        payoutFrequencyDays: 15,
         isActive: true,
         isVerified: true
       },
@@ -113,11 +124,12 @@ const main = async () => {
         email: 'fatou.seck@example.com',
         password: 'Password123!',
         phone: '+221773000001',
-        role: 'TRANSFORMATEUR',
+        roles: ['TRANSFORMATEUR'],
         location: 'Thiès',
         companyName: 'Seck Agro Transform',
         companyRegistration: 'SN-TH-2021-0890',
         contactPerson: 'Fatou Seck',
+        payoutFrequencyDays: 15,
         isActive: true,
         isVerified: true
       },
@@ -126,11 +138,46 @@ const main = async () => {
         email: 'aminata.diouf@example.com',
         password: 'Password123!',
         phone: '+221773000002',
-        role: 'TRANSFORMATEUR',
+        roles: ['TRANSFORMATEUR'],
         location: 'Ziguinchor',
         companyName: 'Casamance Froid & Stockage',
         companyRegistration: 'SN-ZG-2022-0214',
         contactPerson: 'Aminata Diouf',
+        payoutFrequencyDays: 15,
+        isActive: true,
+        isVerified: true
+      },
+
+      // ── TRANSPORTEURS
+      {
+        name: 'Pape Ndiaye',
+        email: 'pape.ndiaye@transporteur.com',
+        password: 'Password123!',
+        phone: '+221775000001',
+        roles: ['TRANSPORTEUR'],
+        location: 'Dakar',
+        vehicleType: 'Camion 10T',
+        vehicleCapacity: 10,
+        vehiclePlate: 'DK-1234-AB',
+        serviceZones: ['Dakar', 'Thiès', 'Kaolack'],
+        isAvailableForTransport: true,
+        payoutFrequencyDays: 15,
+        isActive: true,
+        isVerified: true
+      },
+      {
+        name: 'Bineta Diallo',
+        email: 'bineta.diallo@transporteur.com',
+        password: 'Password123!',
+        phone: '+221775000002',
+        roles: ['TRANSPORTEUR'],
+        location: 'Kaolack',
+        vehicleType: 'Camionnette 3T',
+        vehicleCapacity: 3,
+        vehiclePlate: 'KL-5678-CD',
+        serviceZones: ['Kaolack', 'Fatick', 'Ziguinchor'],
+        isAvailableForTransport: true,
+        payoutFrequencyDays: 15,
         isActive: true,
         isVerified: true
       },
@@ -141,7 +188,7 @@ const main = async () => {
         email: 'moussa.diop@example.com',
         password: 'Password123!',
         phone: '+221774000001',
-        role: 'AGRICULTEUR',
+        roles: ['AGRICULTEUR'],
         location: 'Kaolack',
         exploitationType: 'Grandes cultures',
         crops: ['Mil', 'Maïs', 'Arachide', 'Niébé'],
@@ -153,7 +200,7 @@ const main = async () => {
         email: 'ibou.fall@example.com',
         password: 'Password123!',
         phone: '+221774000002',
-        role: 'AGRICULTEUR',
+        roles: ['AGRICULTEUR'],
         location: 'Ziguinchor',
         exploitationType: 'Maraîchage et riziculture',
         crops: ['Riz', 'Tomate', 'Oignon', 'Gombo'],
@@ -165,7 +212,7 @@ const main = async () => {
         email: 'pape.gaye@example.com',
         password: 'Password123!',
         phone: '+221774000003',
-        role: 'AGRICULTEUR',
+        roles: ['AGRICULTEUR'],
         location: 'Thiès',
         exploitationType: 'Polyculture',
         crops: ['Arachide', 'Mil', 'Sorgho'],
@@ -177,7 +224,7 @@ const main = async () => {
         email: 'ndeye.sarr@example.com',
         password: 'Password123!',
         phone: '+221774000004',
-        role: 'AGRICULTEUR',
+        roles: ['AGRICULTEUR'],
         location: 'Diourbel',
         exploitationType: 'Oléagineux',
         crops: ['Arachide', 'Sésame', 'Niébé'],
@@ -189,7 +236,7 @@ const main = async () => {
         email: 'ousmane.ba@example.com',
         password: 'Password123!',
         phone: '+221774000005',
-        role: 'AGRICULTEUR',
+        roles: ['AGRICULTEUR'],
         location: 'Saint-Louis',
         exploitationType: 'Riziculture irriguée',
         crops: ['Riz', 'Tomate', 'Oignon'],
@@ -201,7 +248,7 @@ const main = async () => {
         email: 'mariama.cisse@example.com',
         password: 'Password123!',
         phone: '+221774000006',
-        role: 'AGRICULTEUR',
+        roles: ['AGRICULTEUR'],
         location: 'Fatick',
         exploitationType: 'Maraîchage',
         crops: ['Oignon', 'Bissap', 'Pastèque', 'Piment'],
@@ -210,19 +257,20 @@ const main = async () => {
       }
     ]);
 
-    const admin     = users.find(u => u.role === 'ADMIN');
-    const agent1    = users.find(u => u.email === 'cheikh.ba@agent.toletech.com');
-    const owner1    = users.find(u => u.email === 'awa.ndiaye@example.com');       // Dakar
-    const owner2    = users.find(u => u.email === 'serigne.mbaye@example.com');    // Kaolack
-    const owner3    = users.find(u => u.email === 'modou.fall@example.com');       // Saint-Louis
-    const trans1    = users.find(u => u.email === 'fatou.seck@example.com');       // Thiès
-    const trans2    = users.find(u => u.email === 'aminata.diouf@example.com');    // Ziguinchor
-    const farmer1   = users.find(u => u.email === 'moussa.diop@example.com');      // Kaolack
-    const farmer2   = users.find(u => u.email === 'ibou.fall@example.com');        // Ziguinchor
-    const farmer3   = users.find(u => u.email === 'pape.gaye@example.com');        // Thiès
-    const farmer4   = users.find(u => u.email === 'ndeye.sarr@example.com');       // Diourbel
-    const farmer5   = users.find(u => u.email === 'ousmane.ba@example.com');       // Saint-Louis
-    const farmer6   = users.find(u => u.email === 'mariama.cisse@example.com');    // Fatick
+    const admin       = users.find(u => u.roles?.includes('ADMIN'));
+    const agent1      = users.find(u => u.email === 'cheikh.ba@agent.toletech.com');
+    const owner1      = users.find(u => u.email === 'awa.ndiaye@example.com');
+    const owner2      = users.find(u => u.email === 'serigne.mbaye@example.com');
+    const owner3      = users.find(u => u.email === 'modou.fall@example.com');
+    const trans1      = users.find(u => u.email === 'fatou.seck@example.com');
+    const trans2      = users.find(u => u.email === 'aminata.diouf@example.com');
+    const transport1  = users.find(u => u.email === 'pape.ndiaye@transporteur.com');
+    const farmer1     = users.find(u => u.email === 'moussa.diop@example.com');
+    const farmer2     = users.find(u => u.email === 'ibou.fall@example.com');
+    const farmer3     = users.find(u => u.email === 'pape.gaye@example.com');
+    const farmer4     = users.find(u => u.email === 'ndeye.sarr@example.com');
+    const farmer5     = users.find(u => u.email === 'ousmane.ba@example.com');
+    const farmer6     = users.find(u => u.email === 'mariama.cisse@example.com');
 
     // ── Storages ────────────────────────────────────────────────────────────────
     const storages = await Storage.create([
@@ -373,7 +421,7 @@ const main = async () => {
     // R2 — farmer2 → Hangar Kaolack — APPROUVÉ (no billing yet)
     const r2From = daysFromNow(3);
     const r2To   = daysFromNow(33);
-    const res2 = await Reservation.create({
+    await Reservation.create({
       user: farmer2._id,
       createdBy: farmer2._id,
       storage: storages[1]._id,
@@ -393,7 +441,7 @@ const main = async () => {
     // R3 — farmer3 → Chambre Froide Thiès — EN_ATTENTE
     const r3From = daysFromNow(7);
     const r3To   = daysFromNow(22);
-    const res3 = await Reservation.create({
+    await Reservation.create({
       user: farmer3._id,
       createdBy: farmer3._id,
       storage: storages[3]._id,
@@ -408,7 +456,7 @@ const main = async () => {
       ]
     });
 
-    // R4 — farmer5 → Silos Saint-Louis — CONFIRMÉ (billing PENDING)
+    // R4 — farmer5 → Silos Saint-Louis — CONFIRMÉ (billing PENDING, for Wave testing)
     const r4From = daysFromNow(1);
     const r4To   = daysFromNow(31);
     const res4 = await Reservation.create({
@@ -430,14 +478,12 @@ const main = async () => {
     });
 
     // R5 — farmer4 → Hangar Kaolack — REJETÉ
-    const r5From = daysFromNow(-20);
-    const r5To   = daysFromNow(-5);
     await Reservation.create({
       user: farmer4._id,
       createdBy: farmer4._id,
       storage: storages[1]._id,
-      reservedFrom: r5From,
-      reservedTo: r5To,
+      reservedFrom: daysFromNow(-20),
+      reservedTo: daysFromNow(-5),
       status: 'REJETÉ',
       quantity: 300,
       quantityUnit: 'TONNES',
@@ -450,14 +496,12 @@ const main = async () => {
     });
 
     // R6 — farmer6 → Entrepôt Frigorifique Dakar — ANNULÉ
-    const r6From = daysFromNow(10);
-    const r6To   = daysFromNow(25);
     await Reservation.create({
       user: farmer6._id,
       createdBy: farmer6._id,
       storage: storages[5]._id,
-      reservedFrom: r6From,
-      reservedTo: r6To,
+      reservedFrom: daysFromNow(10),
+      reservedTo: daysFromNow(25),
       status: 'ANNULÉ',
       quantity: 2000,
       quantityUnit: 'KG',
@@ -468,15 +512,13 @@ const main = async () => {
       ]
     });
 
-    // R7 — farmer1 → Hangar Ziguinchor — EN_ATTENTE (via agent proxy)
-    const r7From = daysFromNow(14);
-    const r7To   = daysFromNow(44);
+    // R7 — farmer1 → Hangar Ziguinchor — EN_ATTENTE (agent proxy)
     await Reservation.create({
       user: farmer1._id,
-      createdBy: agent1._id,  // agent proxy
+      createdBy: agent1._id,
       storage: storages[4]._id,
-      reservedFrom: r7From,
-      reservedTo: r7To,
+      reservedFrom: daysFromNow(14),
+      reservedTo: daysFromNow(44),
       status: 'EN_ATTENTE',
       quantity: 50,
       quantityUnit: 'TONNES',
@@ -507,21 +549,41 @@ const main = async () => {
       ]
     });
 
+    // R9 — farmer1 → Chambre Froide Thiès — CONFIRMÉ (small billing PENDING — Wave test)
+    const r9From = daysFromNow(-2);
+    const r9To   = daysFromNow(5);
+    const res9 = await Reservation.create({
+      user: farmer1._id,
+      createdBy: farmer1._id,
+      storage: storages[3]._id,
+      reservedFrom: r9From,
+      reservedTo: r9To,
+      status: 'CONFIRMÉ',
+      quantity: 100,
+      quantityUnit: 'KG',
+      notes: '100 kg d\'oignons en attente de paiement. Facture test Wave.',
+      ownerMessage: 'Place réservée en zone B.',
+      statusHistory: [
+        { status: 'EN_ATTENTE', changedBy: farmer1._id, changedAt: daysFromNow(-4), message: 'Réservation initiale' },
+        { status: 'APPROUVÉ',   changedBy: trans1._id,  changedAt: daysFromNow(-3), message: 'Capacité disponible' },
+        { status: 'CONFIRMÉ',   changedBy: admin._id,   changedAt: daysFromNow(-2), message: 'Confirmé' }
+      ]
+    });
+
     // ── Billings ────────────────────────────────────────────────────────────────
-    // R1 billing — PAID
     const r1Days = calcDays(r1From, r1To);
     await Billing.create({
       reservation: res1._id,
       user: farmer1._id,
       storage: storages[0]._id,
-      totalAmount: r1Days * storages[0].costPerKgPerDay * 120000, // per tonne approximation
+      totalAmount: r1Days * storages[0].costPerKgPerDay * 120000,
       days: r1Days,
       status: 'PAID',
       paidAt: daysFromNow(-24),
       currency: 'XOF'
     });
 
-    // R4 billing — PENDING
+    // R4 billing — PENDING (large, for realistic demo)
     const r4Days = calcDays(r4From, r4To);
     await Billing.create({
       reservation: res4._id,
@@ -546,20 +608,70 @@ const main = async () => {
       currency: 'XOF'
     });
 
+    // R9 billing — PENDING small amount (Wave sandbox test)
+    const r9Days = calcDays(r9From, r9To);
+    const r9Amount = r9Days * storages[3].costPerKgPerDay * 100; // 100 kg
+    const billingTest = await Billing.create({
+      reservation: res9._id,
+      user: farmer1._id,
+      storage: storages[3]._id,
+      totalAmount: r9Amount,
+      days: r9Days,
+      status: 'PENDING',
+      currency: 'XOF'
+    });
+
+    // ── Payment provider config ──────────────────────────────────────────────
+    await PaymentProviderConfig.create([
+      { provider: 'WAVE',         label: 'Wave',         isEnabled: true  },
+      { provider: 'ORANGE_MONEY', label: 'Orange Money', isEnabled: false }
+    ]);
+
+    // ── Commission config ────────────────────────────────────────────────────
+    await CommissionConfig.create([
+      { transactionType: 'STORAGE',   mode: 'PERCENTAGE', value: 10, currency: 'XOF' },
+      { transactionType: 'TRANSPORT', mode: 'PERCENTAGE', value: 15, currency: 'XOF' }
+    ]);
+
+    // ── Wallets & transactions ───────────────────────────────────────────────
+    // owner1 (Awa Ndiaye) — 45 000 XOF pending payout
+    const w1 = await Wallet.create({ user: owner1._id, balance: 45000, totalEarned: 108000, totalPaidOut: 63000, currency: 'XOF', lastPayoutAt: daysFromNow(-16) });
+    await Transaction.create([
+      { wallet: w1._id, type: 'ESCROW_RELEASE', amount: 72000, description: 'Paiement net stockage — R1', status: 'COMPLETED', processedAt: daysFromNow(-24) },
+      { wallet: w1._id, type: 'COMMISSION',     amount: 8000,  description: 'Commission Toletech (10%) — R1', status: 'COMPLETED', processedAt: daysFromNow(-24) },
+      { wallet: w1._id, type: 'PAYOUT',         amount: 63000, description: 'Virement automatique J+15', status: 'COMPLETED', processedAt: daysFromNow(-16), provider: 'WAVE' }
+    ]);
+
+    // owner3 (Modou Fall) — 72 000 XOF pending payout
+    const w3 = await Wallet.create({ user: owner3._id, balance: 72000, totalEarned: 72000, totalPaidOut: 0, currency: 'XOF' });
+    await Transaction.create([
+      { wallet: w3._id, type: 'ESCROW_RELEASE', amount: 81000, description: 'Paiement net stockage — R8', status: 'COMPLETED', processedAt: daysFromNow(-44) },
+      { wallet: w3._id, type: 'COMMISSION',     amount: 9000,  description: 'Commission Toletech (10%) — R8', status: 'COMPLETED', processedAt: daysFromNow(-44) }
+    ]);
+
+    // transport1 (Pape Ndiaye) — 18 000 XOF pending payout
+    const wt1 = await Wallet.create({ user: transport1._id, balance: 18000, totalEarned: 18000, totalPaidOut: 0, currency: 'XOF' });
+    await Transaction.create(
+      { wallet: wt1._id, type: 'CREDIT', amount: 18000, description: 'Transport mission — livraison confirmée', status: 'COMPLETED', processedAt: daysFromNow(-10) }
+    );
+
     // ── Summary ─────────────────────────────────────────────────────────────────
     console.log('\n✅  Seed complete\n');
-    console.log('── Users (' + users.length + ') ─────────────────────────────────────────────────────────');
+    console.log('── Users (' + users.length + ') ──────────────────────────────────────────────────────');
     users.forEach(u =>
-      console.log(
-        `  ${u.role.padEnd(15)} ${u.email.padEnd(40)} pw: ${u.role === 'ADMIN' ? 'Admin123!' : 'Password123!'}`
-      )
+      console.log(`  ${(u.roles?.[0] ?? '').padEnd(15)} ${u.email.padEnd(42)} pw: ${u.roles?.includes('ADMIN') ? 'Admin123!' : 'Password123!'}`)
     );
-    console.log('\n── Storages (' + storages.length + ') ─────────────────────────────────────────────────────');
+    console.log('\n── Storages (' + storages.length + ') ────────────────────────────────────────────────');
     storages.forEach((s, i) =>
       console.log(`  [${i}] ${s.storageType.padEnd(14)} ${s.name}`)
     );
-    console.log('\n── Reservations (8) — statuses: CONFIRMÉ(3) APPROUVÉ(1) EN_ATTENTE(2) REJETÉ(1) ANNULÉ(1)');
-    console.log('── Billings (3) — PAID(2) PENDING(1)\n');
+    console.log('\n── Reservations (9) — CONFIRMÉ(4) APPROUVÉ(1) EN_ATTENTE(2) REJETÉ(1) ANNULÉ(1)');
+    console.log('── Billings (4)     — PAID(2) PENDING(2)');
+    console.log(`\n🧪  Wave test billing: farmer1 (moussa.diop@example.com / Password123!)`);
+    console.log(`    Billing ID: ${billingTest._id}  |  Amount: ${r9Amount} XOF  |  status: PENDING`);
+    console.log('\n── PaymentProviderConfig: WAVE=enabled, ORANGE_MONEY=disabled');
+    console.log('── CommissionConfig: STORAGE=10%, TRANSPORT=15%');
+    console.log('── Wallets: owner1(45k) owner3(72k) transport1(18k)\n');
   } catch (error) {
     console.error('\n❌  Seed failed:', error.message);
     process.exitCode = 1;

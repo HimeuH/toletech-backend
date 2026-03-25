@@ -66,6 +66,8 @@ app.use(generalLimiter);
 // Payment webhooks need raw body for HMAC signature verification.
 // Must be registered BEFORE express.json() so the buffer is preserved.
 app.use('/api/v1/payments/webhook', express.raw({ type: '*/*' }));
+// Alias: Wave dashboard may be configured with the old path
+app.use('/api/v1/wave/webhook', express.raw({ type: '*/*' }));
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -110,6 +112,13 @@ app.use('/api/v1/transporters', transporterRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/wallet', walletRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+
+// Alias for Wave dashboard webhook URL (legacy path)
+const { handleWebhook } = require('./controllers/payment.controller');
+app.post('/api/v1/wave/webhook', (req, res, next) => {
+  req.params.provider = 'WAVE';
+  handleWebhook(req, res, next);
+});
 
 /* ======================
    Frontend (PROD)

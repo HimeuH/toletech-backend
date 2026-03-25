@@ -4,6 +4,8 @@ const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth');
 const {
   initiateCheckout,
   handleWebhook,
+  redirectSuccess,
+  redirectError,
   getPaymentHistory,
   getCommissionConfigs,
   createCommissionConfig,
@@ -14,6 +16,10 @@ const {
 
 // Webhook — no auth, raw body is preserved by app.js middleware
 router.post('/webhook/:provider', handleWebhook);
+
+// Redirect proxy — Wave calls these HTTPS URLs, we forward browser to local frontend
+router.get('/redirect/success', redirectSuccess);
+router.get('/redirect/error', redirectError);
 
 // Checkout — authenticated user initiates payment for their billing
 router.post('/checkout', isAuthenticatedUser, initiateCheckout);
