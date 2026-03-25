@@ -46,6 +46,16 @@ jobs:
             JWT_EXPIRES_TIME=${{ secrets.JWT_EXPIRES_TIME || '7d' }}
             COOKIE_EXPIRES_TIME=${{ secrets.COOKIE_EXPIRES_TIME || '7' }}
             REGISTRY=registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}
+            BACKEND_URL=${{ secrets.BACKEND_URL }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            WAVE_API_KEY=${{ secrets.WAVE_API_KEY }}
+            WAVE_BASE_URL=https://api.wave.com/v1
+            WAVE_WEBHOOK_SECRET=${{ secrets.WAVE_WEBHOOK_SECRET }}
+            DEFAULT_PAYMENT_PROVIDER=WAVE
+            DEFAULT_PAYOUT_PROVIDER=WAVE
+            RATE_LIMIT_MAX=200
+            COMMISSION_STORAGE_PERCENT=10
+            COMMISSION_TRANSPORT_PERCENT=15
             ENV
 
             echo "${{ secrets.DO_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_TOKEN }}" --password-stdin

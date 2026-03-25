@@ -6,7 +6,8 @@ Dockerfile
 .gitignore
 .vscode
 .env
-.env.* 
+.env.*
+config/config.env
 coverage
 logs
 tmp
