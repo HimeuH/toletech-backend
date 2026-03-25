@@ -274,7 +274,18 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
     "serviceZones",
     "isAvailableForTransport",
     "payoutFrequencyDays",
+    "roles",
   ];
+  // Prevent self-elevation to privileged roles but preserve existing ones
+  if (req.body.roles) {
+    const PRIVILEGED = ['ADMIN', 'AGENT'];
+    const requested = Array.isArray(req.body.roles) ? req.body.roles : [req.body.roles];
+    const currentUser = await User.findById(req.user.id).select('roles');
+    const existingPrivileged = (currentUser.roles || []).filter(r => PRIVILEGED.includes(r));
+    const nonPrivileged = requested.filter(r => !PRIVILEGED.includes(r));
+    req.body.roles = [...new Set([...nonPrivileged, ...existingPrivileged])];
+    if (req.body.roles.length === 0) delete req.body.roles;
+  }
   const newUserData = {};
   allowed.forEach((field) => {
     if (req.body[field] !== undefined) newUserData[field] = req.body[field];

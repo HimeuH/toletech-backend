@@ -27,7 +27,7 @@ app.get('/', function(req, res) {
 ====================== */
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' }
@@ -61,6 +61,10 @@ const forgotPasswordLimiter = rateLimit({
    Middlewares
 ====================== */
 app.use(helmet());
+app.use(cors({
+  origin: ['http://localhost:4200', 'https://mvp.toletech.sn'],
+  credentials: true
+}));
 app.use(generalLimiter);
 
 // Payment webhooks need raw body for HMAC signature verification.
@@ -73,12 +77,6 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
-app.use(
-  cors({
-    origin: ['http://localhost:4200', 'https://mvp.toletech.sn'],
-    credentials: true
-  })
-);
 
 /* ======================
    Routes
