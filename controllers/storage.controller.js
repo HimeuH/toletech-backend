@@ -46,8 +46,8 @@ exports.createStorage = catchAsyncErrors(async (req, res, next) => {
   if (req.files && req.files.photos) {
     const files = req.files.photos;
     const fileList = Array.isArray(files) ? files : [files];
-    if (fileList.length > 10) {
-      return next(new ErrorHandler('Maximum 10 photos allowed', 400));
+    if (fileList.length > 6) {
+      return next(new ErrorHandler('Maximum 6 photos allowed', 400));
     }
     storageData.photos = await uploadPhotos(fileList);
   }
@@ -109,8 +109,8 @@ exports.updateStorage = catchAsyncErrors(async (req, res, next) => {
     const files = req.files.photos;
     const fileList = Array.isArray(files) ? files : [files];
     const existingCount = storage.photos ? storage.photos.length : 0;
-    if (existingCount + fileList.length > 10) {
-      return next(new ErrorHandler(`Maximum 10 photos allowed. Storage already has ${existingCount}.`, 400));
+    if (existingCount + fileList.length > 6) {
+      return next(new ErrorHandler(`Maximum 6 photos allowed. Storage already has ${existingCount}.`, 400));
     }
     const newPhotos = await uploadPhotos(fileList);
     req.body.photos = [...(storage.photos || []), ...newPhotos];
