@@ -18,6 +18,8 @@ const billingSchema = new mongoose.Schema(
       type: Number,
       required: true
     },
+    storageAmount: { type: Number, default: 0 },  // portion for storage owner
+    transportAmount: { type: Number, default: 0 }, // portion for transporter
     currency: {
       type: String,
       default: 'XOF'
@@ -32,6 +34,8 @@ const billingSchema = new mongoose.Schema(
       default: 'PENDING'
     },
     paidAt: Date,
+    storagePaidAt: Date,      // when owner wallet was credited
+    transporterPaidAt: Date,  // when transporter wallet was credited
     // Payment provider fields
     paymentProvider: {
       type: String,

@@ -21,6 +21,7 @@ const Notification = require('../models/Notification');
  * @param {string}  [opts.smsText]    - override SMS text (use template short copy)
  * @param {string}  [opts.waText]     - override WhatsApp text (use template rich copy)
  */
+// Controlled by NOTIFY_CHANNEL env var: 'email' | 'sms' (default: 'sms')
 module.exports = async (userId, type, title, message, data = {}, opts = {}) => {
   const { sms = false, whatsapp = false, smsText, waText } = opts;
 
@@ -30,25 +31,35 @@ module.exports = async (userId, type, title, message, data = {}, opts = {}) => {
 
   try {
     const User = require('../models/User');
-    const user = await User.findById(userId).select('phone notifPrefs');
+    const user = await User.findById(userId).select('phone email notifPrefs');
 
-    if (!user?.phone) return notification;
+    const notifyChannel = process.env.NOTIFY_CHANNEL || 'sms';
 
-    const prefSms      = user.notifPrefs?.sms !== false;       // default true
-    const prefWhatsApp = user.notifPrefs?.whatsapp === true;   // default false
-
-    if (sms && prefSms) {
-      const sendSms = require('./sendSms');
-      void sendSms(user.phone, smsText || message).catch(err =>
-        console.error('[notify SMS]', err?.message || err)
-      );
+    if (sms) {
+      if (notifyChannel === 'email' && user?.email) {
+        const sendEmail = require('./sendEmail');
+        void sendEmail({ email: user.email, subject: title, message: smsText || message }).catch(err =>
+          console.error('[notify Email]', err?.message || err)
+        );
+      } else {
+        const prefSms = user?.notifPrefs?.sms !== false; // default true
+        if (user?.phone && prefSms) {
+          const sendSms = require('./sendSms');
+          void sendSms(user.phone, smsText || message).catch(err =>
+            console.error('[notify SMS]', err?.message || err)
+          );
+        }
+      }
     }
 
-    if (whatsapp && prefWhatsApp) {
-      const sendWhatsApp = require('./sendWhatsApp');
-      void sendWhatsApp(user.phone, waText || smsText || message).catch(err =>
-        console.error('[notify WA]', err?.message || err)
-      );
+    if (whatsapp && notifyChannel !== 'email') {
+      const prefWhatsApp = user?.notifPrefs?.whatsapp === true; // default false
+      if (user?.phone && prefWhatsApp) {
+        const sendWhatsApp = require('./sendWhatsApp');
+        void sendWhatsApp(user.phone, waText || smsText || message).catch(err =>
+          console.error('[notify WA]', err?.message || err)
+        );
+      }
     }
   } catch (err) {
     console.error('[notify] Channel delivery error:', err?.message || err);

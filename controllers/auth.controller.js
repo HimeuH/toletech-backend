@@ -10,8 +10,9 @@ const sendSms = require("../utils/sendSms");
 const crypto = require("crypto");
 const cloudinary = require("cloudinary");
 
-// Helper: generate a 6-digit OTP, save to DB, and send via SMS
-const generateAndSendOtp = async (phone, type = 'REGISTER') => {
+// Helper: generate a 6-digit OTP, save to DB, and send via SMS or email
+// Controlled by OTP_CHANNEL env var: 'email' | 'sms' (default: 'sms')
+const generateAndSendOtp = async (phone, type = 'REGISTER', email = null) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -22,9 +23,22 @@ const generateAndSendOtp = async (phone, type = 'REGISTER') => {
     ? `Votre code de réinitialisation ToleTech est: ${code}. Valide 10 minutes.`
     : `Your ToleTech verification code is: ${code}. Valid for 10 minutes.`;
 
-  void sendSms(phone, message).catch((err) =>
-    console.error("[OTP SMS] Failed to send:", err?.message || err),
-  );
+  const subject = type === 'RESET'
+    ? 'ToleTech — Code de réinitialisation'
+    : 'ToleTech — Code de vérification';
+
+  const channel = process.env.OTP_CHANNEL || 'sms';
+
+  if (channel === 'email' && email) {
+    void sendEmail({ email, subject, message }).catch((err) =>
+      console.error("[OTP Email] Failed to send:", err?.message || err),
+    );
+  } else {
+    void sendSms(phone, message).catch((err) =>
+      console.error("[OTP SMS] Failed to send:", err?.message || err),
+    );
+  }
+
   return code;
 };
 
@@ -82,11 +96,13 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (phone) {
-    await generateAndSendOtp(phone);
+    await generateAndSendOtp(phone, 'REGISTER', email);
+    const channel = process.env.OTP_CHANNEL || 'sms';
     return res.status(201).json({
       success: true,
-      message:
-        "Registration successful. Please verify your phone number with the OTP sent via SMS.",
+      message: channel === 'email' && email
+        ? "Registration successful. Please verify your account with the OTP sent via email."
+        : "Registration successful. Please verify your phone number with the OTP sent via SMS.",
       phone,
     });
   }
@@ -147,11 +163,14 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("No account found with this phone number", 404));
   }
 
-  await generateAndSendOtp(phone, 'RESET');
+  await generateAndSendOtp(phone, 'RESET', user.email);
 
+  const channel = process.env.OTP_CHANNEL || 'sms';
   res.status(200).json({
     success: true,
-    message: "OTP sent via SMS. Use it to verify your identity before resetting your password.",
+    message: channel === 'email' && user.email
+      ? "OTP sent via email. Use it to verify your identity before resetting your password."
+      : "OTP sent via SMS. Use it to verify your identity before resetting your password.",
     phone,
   });
 });
@@ -298,7 +317,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
       await User.findByIdAndUpdate(req.user.id, {
         pendingPhone: req.body.phone,
       });
-      await generateAndSendOtp(req.body.phone);
+      await generateAndSendOtp(req.body.phone, 'REGISTER', currentUser.email);
       return res.status(200).json({
         success: true,
         message: "OTP sent to new phone number. Verify to confirm the change.",
@@ -733,7 +752,7 @@ exports.resendOtp = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Phone number is already verified", 400));
   }
 
-  await generateAndSendOtp(phone);
+  await generateAndSendOtp(phone, 'REGISTER', user.email);
 
   res.status(200).json({
     success: true,

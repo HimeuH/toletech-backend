@@ -49,6 +49,7 @@ const reservationSchema = new mongoose.Schema(
 
     // S3-BE-01: transport integration
     needsTransport: { type: Boolean, default: false },
+    transportFee: { type: Number, default: 0 }, // agreed price between farmer and transporter (XOF)
     transporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     transportStatus: {
       type: String,

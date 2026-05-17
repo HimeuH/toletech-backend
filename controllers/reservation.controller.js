@@ -197,15 +197,18 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
 
   // S2-BE-02: atomic capacity updates on status transition
   if (updates.status && updates.status !== previousStatus && reservation.quantity) {
-    const qty = reservation.quantity;
-    const qUnit = reservation.quantityUnit;
+    const storage = await Storage.findById(reservation.storage).select('capacityUnit');
+    const converted = storage
+      ? (toStorageUnit(reservation.quantity, reservation.quantityUnit, storage.capacityUnit) ?? reservation.quantity)
+      : reservation.quantity;
+
     if (updates.status === 'CONFIRMÉ') {
       // Lock capacity when reservation is confirmed
-      await Storage.findByIdAndUpdate(reservation.storage, { $inc: { reservedCapacity: qty } });
+      await Storage.findByIdAndUpdate(reservation.storage, { $inc: { reservedCapacity: converted } });
     } else if (updates.status === 'ANNULÉ' && previousStatus === 'CONFIRMÉ') {
       // Free capacity when a confirmed reservation is cancelled (admin only path)
       await Storage.findByIdAndUpdate(reservation.storage, [
-        { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', qty] }] } } }
+        { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', converted] }] } } }
       ]);
     }
   }
@@ -311,8 +314,12 @@ exports.deleteReservation = catchAsyncErrors(async (req, res, next) => {
 
   // S2: free capacity if a confirmed reservation is deleted
   if (reservation.status === 'CONFIRMÉ' && reservation.quantity) {
+    const storage = await Storage.findById(reservation.storage).select('capacityUnit');
+    const converted = storage
+      ? (toStorageUnit(reservation.quantity, reservation.quantityUnit, storage.capacityUnit) ?? reservation.quantity)
+      : reservation.quantity;
     await Storage.findByIdAndUpdate(reservation.storage, [
-      { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', reservation.quantity] }] } } }
+      { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', converted] }] } } }
     ]);
   }
 
@@ -405,7 +412,7 @@ exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
   reservation.deliveredAt = new Date();
   await reservation.save();
 
-  // S3-BE-07: notify the farmer + mark transporter available again (optional, let them manage it)
+  // S3-BE-07: notify the farmer
   await notify(
     reservation.user,
     'TRANSPORT_DELIVERED',
@@ -414,6 +421,18 @@ exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
     { reservationId: reservation._id },
     { sms: true }
   ).catch(err => console.error('Notification error:', err.message));
+
+  // Credit transporter immediately if billing already paid
+  try {
+    const Billing = require('../models/Billing');
+    const { creditTransporterWallet } = require('./billing.controller');
+    const billing = await Billing.findOne({ reservation: reservation._id, status: 'PAID' });
+    if (billing && billing.transportAmount > 0 && !billing.transporterPaidAt) {
+      await creditTransporterWallet(billing, reservation);
+    }
+  } catch (err) {
+    console.error('[transport payment]', err.message);
+  }
 
   res.status(200).json({ success: true, data: reservation });
 });

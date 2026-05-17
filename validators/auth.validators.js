@@ -17,10 +17,14 @@ exports.registerRules = [
     // Allowed countries (E.164): SN(+221, 9 digits), CI(+225, 10 digits), ML(+223, 8 digits), GN(+224, 9 digits)
     .matches(/^(?:\+|00)?(?:221\d{9}|225\d{10}|223\d{8}|224\d{9})$/)
     .withMessage("Invalid phone number"),
-  body("role")
-    .notEmpty()
-    .isIn(["AGRICULTEUR", "PROPRIETAIRE", "TRANSFORMATEUR"])
-    .withMessage("Invalid role"),
+  body("roles")
+    .isArray({ min: 1 })
+    .withMessage("Invalid value")
+    .custom((roles) => {
+      const valid = ["AGRICULTEUR", "PROPRIETAIRE", "TRANSFORMATEUR"];
+      if (!roles.every((r) => valid.includes(r))) throw new Error("Invalid role");
+      return true;
+    }),
   body("location").optional().trim(),
   body("exploitationType").optional().trim(),
   body("crops").optional().isArray().withMessage("crops must be an array"),
@@ -54,11 +58,14 @@ exports.createUserRules = [
     )
     .matches(/^(?:\+|00)?(?:221\d{9}|225\d{10}|223\d{8}|224\d{9})$/)
     .withMessage('Invalid phone number'),
-  body('role')
-    .notEmpty()
+  body('roles')
+    .isArray({ min: 1 })
     .withMessage('Role is required')
-    .isIn(['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT', 'ADMIN'])
-    .withMessage('Invalid role'),
+    .custom((roles) => {
+      const valid = ['AGRICULTEUR', 'PROPRIETAIRE', 'TRANSFORMATEUR', 'AGENT', 'ADMIN'];
+      if (!roles.every((r) => valid.includes(r))) throw new Error('Invalid role');
+      return true;
+    }),
   body('location').optional().trim(),
   // AGRICULTEUR
   body('exploitationType').optional().trim(),

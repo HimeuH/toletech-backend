@@ -23,13 +23,17 @@ exports.generateBilling = async (reservationId) => {
   const diffTime = Math.abs(end - start);
   const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  const totalAmount = days * (storage.costPerKgPerDay || 0);
+  const storageAmount = days * (storage.costPerKgPerDay || 0);
+  const transportAmount = reservation.needsTransport ? (reservation.transportFee || 0) : 0;
+  const totalAmount = storageAmount + transportAmount;
 
   const billing = await Billing.create({
     reservation: reservation._id,
     user: reservation.user._id,
     storage: storage._id,
     totalAmount,
+    storageAmount,
+    transportAmount,
     days,
   });
 
@@ -125,19 +129,55 @@ exports.getBillingById = catchAsyncErrors(async (req, res, next) => {
  * and records all transactions.
  * Exported so the payment webhook controller can reuse it without duplication.
  */
+// Internal helper — credit transporter wallet for a delivered+paid billing
+exports.creditTransporterWallet = async (billing, reservation) => {
+  if (!billing.transportAmount || billing.transporterPaidAt) return;
+  if (!reservation.transporter) return;
+
+  const { creditWallet } = require('./wallet.controller');
+  const { commissionAmount, mode, value } = await computeCommission(
+    billing.transportAmount,
+    'TRANSPORT',
+    { partnerId: reservation.transporter }
+  );
+  const net = billing.transportAmount - commissionAmount;
+
+  await creditWallet(
+    reservation.transporter,
+    net,
+    `Paiement transport — facture #${billing._id}`,
+    { relatedBilling: billing._id, type: 'TRANSPORT_PAYMENT' }
+  );
+
+  await Billing.findByIdAndUpdate(billing._id, { transporterPaidAt: new Date() });
+
+  const notify = require('../utils/notify');
+  const commissionLabel = mode === 'FIXED' ? `${commissionAmount} XOF` : `${value}%`;
+  await notify(
+    reservation.transporter,
+    'TRANSPORT_PAYMENT_RECEIVED',
+    'Paiement transport reçu',
+    `Vous avez reçu ${net} XOF pour la livraison (facture #${billing._id}, commission ${commissionLabel} déduite).`,
+    { billingId: billing._id },
+    { sms: true }
+  ).catch(err => console.error('[notify] transporter payment:', err.message));
+};
+
 exports.processPaidBilling = async (billing) => {
   const populatedBilling = await Billing.findById(billing._id)
-    .populate({ path: 'reservation', populate: { path: 'storage', select: 'owner' } });
+    .populate('user', '_id')
+    .populate({ path: 'reservation', populate: { path: 'storage', select: 'owner name' } });
   const ownerId = populatedBilling?.reservation?.storage?.owner;
   if (!ownerId) return;
 
-  const storageId = populatedBilling?.reservation?.storage?._id;
+  const reservation = populatedBilling.reservation;
+  const storageId = reservation?.storage?._id;
   const { commissionAmount, mode, value } = await computeCommission(
-    billing.totalAmount,
+    billing.storageAmount || billing.totalAmount,
     'STORAGE',
     { partnerId: ownerId, storageId }
   );
-  const net = billing.totalAmount - commissionAmount;
+  const net = (billing.storageAmount || billing.totalAmount) - commissionAmount;
 
   const { creditWallet, getOrCreateWallet } = require('./wallet.controller');
   const Transaction = require('../models/Transaction');
@@ -163,6 +203,41 @@ exports.processPaidBilling = async (billing) => {
     `Paiement net stockage — facture #${billing._id}`,
     { relatedBilling: billing._id, type: 'ESCROW_RELEASE' }
   );
+
+  await Billing.findByIdAndUpdate(billing._id, { storagePaidAt: new Date() });
+
+  const notify = require('../utils/notify');
+  const storageName = reservation?.storage?.name || 'votre entrepôt';
+  const farmerId = populatedBilling?.user?._id;
+
+  // Notify owner: wallet credited
+  await notify(
+    ownerId,
+    'PAYMENT_RECEIVED',
+    'Paiement reçu',
+    `Vous avez reçu ${net} XOF pour ${storageName} (facture #${billing._id}, commission ${commissionAmount} XOF déduite).`,
+    { billingId: billing._id },
+    { sms: true }
+  ).catch(err => console.error('[notify] owner payment:', err.message));
+
+  // Notify farmer: payment confirmed
+  if (farmerId) {
+    await notify(
+      farmerId,
+      'PAYMENT_CONFIRMED',
+      'Paiement confirmé',
+      `Votre paiement de ${billing.totalAmount} XOF pour la facture #${billing._id} a bien été reçu.`,
+      { billingId: billing._id },
+      { sms: true }
+    ).catch(err => console.error('[notify] farmer payment:', err.message));
+  }
+
+  // Credit transporter immediately if delivery already confirmed
+  if (billing.transportAmount > 0 && reservation?.transportStatus === 'LIVRÉ') {
+    await exports.creditTransporterWallet(billing, reservation).catch(err =>
+      console.error('[notify] transporter wallet:', err.message)
+    );
+  }
 };
 
 // PUT /api/v1/billings/:id/status — admin only

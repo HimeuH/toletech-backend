@@ -54,6 +54,7 @@ const userSchema = new mongoose.Schema(
     vehiclePlate: String,
     serviceZones: [String],
     isAvailableForTransport: { type: Boolean, default: true },
+    transportRate: { type: Number, default: 0 }, // suggested price per trip (XOF)
 
     // Payout config (PROPRIETAIRE / TRANSPORTEUR)
     payoutFrequencyDays: { type: Number, default: 15 },
