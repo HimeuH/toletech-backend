@@ -30,7 +30,7 @@ const reservationSchema = new mongoose.Schema(
     quantity: Number,
     quantityUnit: {
       type: String,
-      enum: ['KG', 'TONNES', 'SACS', 'LITRES']
+      enum: ['KG', 'TONNES', 'LITRES']
     },
     // BE-024: audit trail — who actually created the record (agent proxy)
     createdBy: {
