@@ -21,7 +21,7 @@ exports.registerRules = [
     .isArray({ min: 1 })
     .withMessage("Invalid value")
     .custom((roles) => {
-      const valid = ["AGRICULTEUR", "PROPRIETAIRE", "TRANSFORMATEUR"];
+      const valid = ["AGRICULTEUR", "PROPRIETAIRE", "TRANSFORMATEUR", "TRANSPORTEUR"];
       if (!roles.every((r) => valid.includes(r))) throw new Error("Invalid role");
       return true;
     }),

@@ -5,25 +5,13 @@ module.exports = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     const env = (process.env.NODE_ENV || '').toLowerCase();
 
-    if (env !== 'production') {
-        console.log(err);
-
-        return res.status(err.statusCode).json({
-            success: false,
-            error: err,
-            errMessage: err.message,
-            stack: err.stack
-        });
-    }
-
     let error = { ...err };
-
     error.message = err.message;
+    error.statusCode = err.statusCode || 500;
 
     // Wrong Mongoose Object ID Error
     if (err.name === 'CastError') {
-        const message = `Resource not found. Invalid: ${err.path}`;
-        error = new ErrorHandler(message, 400);
+        error = new ErrorHandler(`Resource not found. Invalid: ${err.path}`, 400);
     }
 
     // Handling Mongoose Validation Error
@@ -34,20 +22,23 @@ module.exports = (err, req, res, next) => {
 
     // Handling Mongoose duplicate key errors
     if (err.code === 11000) {
-        const message = `Duplicate ${Object.keys(err.keyValue)} entered`;
-        error = new ErrorHandler(message, 400);
+        const field = Object.keys(err.keyValue)[0];
+        const friendlyField = field === 'email' ? 'adresse email' : field === 'phone' ? 'numéro de téléphone' : field;
+        error = new ErrorHandler(`Un compte existe déjà avec cette ${friendlyField}.`, 409);
     }
 
     // Handling wrong JWT error
     if (err.name === 'JsonWebTokenError') {
-        const message = 'JSON Web Token is invalid. Try Again!!!';
-        error = new ErrorHandler(message, 400);
+        error = new ErrorHandler('JSON Web Token is invalid. Try Again!!!', 400);
     }
 
     // Handling Expired JWT error
     if (err.name === 'TokenExpiredError') {
-        const message = 'JSON Web Token is expired. Try Again!!!';
-        error = new ErrorHandler(message, 400);
+        error = new ErrorHandler('JSON Web Token is expired. Try Again!!!', 400);
+    }
+
+    if (env !== 'production') {
+        console.log(err);
     }
 
     return res.status(error.statusCode || 500).json({

@@ -53,6 +53,30 @@ exports.ownerDashboard = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+// GET /api/v1/dashboard/transporter
+exports.transporterDashboard = catchAsyncErrors(async (req, res, next) => {
+  const userId = req.user.id;
+
+  const [assignedTrips, pendingRequests, completedTrips, earningsAgg, user] = await Promise.all([
+    Reservation.countDocuments({ transporter: userId, transportStatus: 'ACCEPTÉ' }),
+    Reservation.countDocuments({ transporter: userId, transportStatus: 'DEMANDÉ' }),
+    Reservation.countDocuments({ transporter: userId, transportStatus: 'LIVRÉ' }),
+    Reservation.aggregate([
+      { $match: { transporter: require('mongoose').Types.ObjectId.createFromHexString(userId.toString()), transportStatus: 'LIVRÉ' } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$transportFee', 0] } } } },
+    ]),
+    User.findById(userId).select('isAvailableForTransport'),
+  ]);
+
+  sendResponse(res, 200, {
+    assignedTrips,
+    pendingRequests,
+    completedTrips,
+    totalEarnings: earningsAgg[0]?.total || 0,
+    isAvailable: user?.isAvailableForTransport ?? false,
+  });
+});
+
 // GET /api/v1/dashboard/admin
 exports.adminDashboard = catchAsyncErrors(async (req, res, next) => {
   const now = new Date();
