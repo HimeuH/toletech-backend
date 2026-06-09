@@ -39,8 +39,14 @@ const billingSchema = new mongoose.Schema(
     // Payment provider fields
     paymentProvider: {
       type: String,
-      enum: ['WAVE', 'ORANGE_MONEY'],
+      enum: ['WAVE', 'ORANGE_MONEY', 'PISPI'],
       default: null
+    },
+    pispiIntentId: {
+      type: String,
+      default: null,
+      index: true,
+      sparse: true
     },
     checkoutSessionId: {
       type: String,

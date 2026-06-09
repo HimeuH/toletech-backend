@@ -42,7 +42,7 @@ const transactionSchema = new mongoose.Schema(
     // Payment provider fields — set for CHECKOUT and PAYOUT transactions
     provider: {
       type: String,
-      enum: ['WAVE', 'ORANGE_MONEY'],
+      enum: ['WAVE', 'ORANGE_MONEY', 'PISPI'],
       default: null
     },
     providerRef: {

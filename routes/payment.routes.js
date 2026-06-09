@@ -4,6 +4,7 @@ const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth');
 const {
   initiateCheckout,
   handleWebhook,
+  handlePispiWebhook,
   redirectSuccess,
   redirectError,
   getPaymentHistory,
@@ -16,6 +17,8 @@ const {
 } = require('../controllers/payment.controller');
 
 // Webhook — no auth, raw body is preserved by app.js middleware
+// PISPI route must be registered BEFORE the generic /:provider route
+router.post('/webhook/pispi', handlePispiWebhook);
 router.post('/webhook/:provider', handleWebhook);
 
 // Redirect proxy — Wave calls these HTTPS URLs, we forward browser to local frontend

@@ -9,7 +9,7 @@ const paymentProviderConfigSchema = new mongoose.Schema(
   {
     provider: {
       type: String,
-      enum: ['WAVE', 'ORANGE_MONEY'],
+      enum: ['WAVE', 'ORANGE_MONEY', 'PISPI'],
       required: true,
       unique: true
     },

@@ -20,7 +20,7 @@ const reservationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['EN_ATTENTE', 'APPROUVÉ', 'REJETÉ', 'CONFIRMÉ', 'ANNULÉ'],
+      enum: ['EN_ATTENTE', 'APPROUVÉ', 'REJETÉ', 'CONFIRMÉ', 'ANNULÉ', 'VALIDÉ', 'LITIGE'],
       default: 'EN_ATTENTE'
     },
     // BE-013: owner response

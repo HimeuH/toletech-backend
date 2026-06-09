@@ -68,3 +68,5 @@ rbac.json
 config/config.env
 config/config.env
 config/config.env
+# PI-SPI mTLS certificates — never commit these
+/certs/

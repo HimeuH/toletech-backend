@@ -10,8 +10,9 @@
  */
 
 const PROVIDERS = {
-  WAVE: () => require('./providers/wave'),
-  ORANGE_MONEY: () => require('./providers/orange_money')
+  WAVE:         () => require('./providers/wave'),
+  ORANGE_MONEY: () => require('./providers/orange_money'),
+  PISPI:        () => require('./providers/pispi'),
 };
 
 function getProvider(name) {

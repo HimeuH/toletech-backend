@@ -5,9 +5,13 @@
  * Commission logic is delegated to utils/payment.js (computeCommission).
  * Wallet crediting is delegated to billing.controller.js (processPaidBilling).
  */
+const mongoose = require('mongoose');
+const { randomUUID } = require('crypto');
 const Billing = require('../models/Billing');
 const Transaction = require('../models/Transaction');
 const PaymentProviderConfig = require('../models/PaymentProviderConfig');
+const PaymentIntent = require('../models/PaymentIntent');
+const WebhookEvent = require('../models/WebhookEvent');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const payment = require('../utils/payment');
@@ -15,8 +19,9 @@ const { processPaidBilling } = require('./billing.controller');
 
 // Default seed — auto-created on first GET /payments/providers
 const DEFAULT_PROVIDERS = [
-  { provider: 'WAVE', label: 'Wave', isEnabled: true },
-  { provider: 'ORANGE_MONEY', label: 'Orange Money', isEnabled: false }
+  { provider: 'WAVE',         label: 'Wave',         isEnabled: true  },
+  { provider: 'ORANGE_MONEY', label: 'Orange Money',  isEnabled: false },
+  { provider: 'PISPI',        label: 'PI-SPI BCEAO',  isEnabled: false },
 ];
 
 async function seedProviders() {
@@ -62,7 +67,65 @@ exports.initiateCheckout = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  // Wave requires HTTPS — use backend (ngrok) as redirect proxy so local dev works
+  // ── PI-SPI: RTP (Request to Pay) ─────────────────────────────────────────
+  // QR Code is forbidden for online payments per PI-SPI policy.
+  if (activeProvider === 'PISPI') {
+    const { debtorAlias } = req.body;
+    if (!debtorAlias) {
+      return next(new ErrorHandler('debtorAlias (numéro de téléphone PI-SPI) est requis', 400));
+    }
+
+    // Guard: already confirmed
+    const confirmed = await PaymentIntent.findOne({
+      billingId: billing._id,
+      status:    'CONFIRMED',
+    });
+    if (confirmed) return next(new ErrorHandler('Cette facture est déjà payée', 400));
+
+    const idempotencyKey = randomUUID();
+
+    // Persist BEFORE calling PI-SPI (prevents orphaned intents on server crash)
+    const intent = await PaymentIntent.create({
+      billingId:      billing._id,
+      idempotencyKey,
+      amount:         billing.totalAmount,
+      currency:       billing.currency || 'XOF',
+      status:         'INITIATED',
+    });
+
+    try {
+      const pispi = require('../utils/providers/pispi');
+      const session = await pispi.createRtp({
+        amount:         billing.totalAmount,
+        currency:       billing.currency || 'XOF',
+        debtorAlias,
+        idempotencyKey,
+        description:    `Paiement ToleTech — facture #${billing._id}`,
+      });
+
+      await PaymentIntent.findByIdAndUpdate(intent._id, {
+        pispiRtpId: session.id,
+        status:     'PENDING',
+      });
+
+      billing.paymentProvider = 'PISPI';
+      billing.pispiIntentId   = intent._id.toString();
+      await billing.save();
+
+      return res.status(200).json({
+        success:  true,
+        provider: 'PISPI',
+        intentId: intent._id,
+        message:  'Vérifiez votre téléphone pour approuver le paiement PI-SPI',
+      });
+
+    } catch (err) {
+      await PaymentIntent.findByIdAndUpdate(intent._id, { status: 'TIMEOUT' });
+      return next(new ErrorHandler(`Erreur PI-SPI: ${err.message}`, 504));
+    }
+  }
+
+  // ── Wave / Orange Money: redirect-based checkout ──────────────────────────
   const backendBase = process.env.BACKEND_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
   const session = await payment.createCheckout(activeProvider, {
     amount: billing.totalAmount,
@@ -99,6 +162,110 @@ exports.redirectError = (req, res) => {
   const billing = req.query.billing || '';
   res.redirect(`${frontendBase}/#/facturation/payment/error?billing=${billing}`);
 };
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/payments/webhook/pispi
+// PI-SPI-specific webhook handler.
+// • HMAC-SHA256 signature verification (timingSafeEqual)
+// • WebhookEvent dedup via unique index (code 11000 = already processed)
+// • PaymentIntent atomic status PENDING → CONFIRMED inside MongoDB transaction
+// • Delegates wallet crediting to existing processPaidBilling()
+// ---------------------------------------------------------------------------
+exports.handlePispiWebhook = async (req, res) => {
+  const rawBody = req.body; // Buffer, preserved by express.raw()
+
+  // 1. Verify signature
+  const pispi = require('../utils/providers/pispi');
+  let event;
+  try {
+    event = pispi.verifyWebhookSignature(rawBody, req.headers['x-pispi-signature'] || '');
+  } catch (err) {
+    console.error('[webhook:pispi] Signature error:', err.message);
+    return res.status(400).json({ error: 'Invalid signature' });
+  }
+
+  // 2. Reject stale replays (> 5 min)
+  if (event.timestamp && Date.now() - new Date(event.timestamp).getTime() > 5 * 60 * 1000) {
+    return res.status(200).json({ received: true, note: 'stale' });
+  }
+
+  // 3. Dedup — unique index on eventId; duplicate key = already processed
+  try {
+    await WebhookEvent.create({ eventId: event.id, type: event.type, payload: event });
+  } catch (e) {
+    if (e.code === 11000) return res.status(200).json({ received: true, note: 'duplicate' });
+    console.error('[webhook:pispi] WebhookEvent.create error:', e.message);
+    return res.status(500).json({ error: 'Internal error' });
+  }
+
+  // 4. Route by event type
+  const SUCCESS_TYPES = ['rtp.completed', 'payment.succeeded'];
+  const FAIL_TYPES    = ['rtp.rejected', 'rtp.expired'];
+
+  try {
+    if (SUCCESS_TYPES.includes(event.type)) {
+      await processPispiPayment(event);
+    } else if (FAIL_TYPES.includes(event.type)) {
+      await processPispiFailure(event);
+    }
+    await WebhookEvent.updateOne({ eventId: event.id }, { processed: true, processedAt: new Date() });
+  } catch (e) {
+    await WebhookEvent.updateOne({ eventId: event.id }, { error: e.message });
+    console.error('[webhook:pispi] processing error:', e.message);
+    return res.status(500).json({ error: 'Processing error' }); // PI-SPI will retry
+  }
+
+  return res.status(200).json({ received: true });
+};
+
+async function processPispiPayment(event) {
+  const rtpId = event.data?.rtpId || event.rtpId;
+
+  // 5. Atomic lock: PENDING → CONFIRMED (prevents double-credit on retry)
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  let intent;
+  try {
+    intent = await PaymentIntent.findOneAndUpdate(
+      { pispiRtpId: rtpId, status: 'PENDING' },
+      { status: 'CONFIRMED', confirmedAt: new Date() },
+      { session, new: true }
+    );
+
+    if (!intent) {
+      await session.abortTransaction();
+      return; // already processed or not found
+    }
+
+    await session.commitTransaction();
+  } catch (e) {
+    await session.abortTransaction();
+    throw e;
+  } finally {
+    session.endSession();
+  }
+
+  // 6. Mark billing PAID and credit wallets (re-uses existing logic)
+  const billing = await Billing.findById(intent.billingId);
+  if (!billing || billing.status === 'PAID') return;
+
+  billing.status      = 'PAID';
+  billing.paidAt      = new Date();
+  billing.providerRef = event.data?.transactionId || event.transactionId || null;
+  await billing.save();
+
+  await processPaidBilling(billing);
+}
+
+async function processPispiFailure(event) {
+  const rtpId = event.data?.rtpId || event.rtpId;
+
+  await PaymentIntent.updateOne(
+    { pispiRtpId: rtpId, status: { $in: ['PENDING', 'INITIATED'] } },
+    { status: event.type.includes('expired') ? 'EXPIRED' : 'FAILED' }
+  );
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/payments/webhook/:provider
