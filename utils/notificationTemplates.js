@@ -57,18 +57,25 @@ module.exports = {
 
   // ─── Transport ────────────────────────────────────────────────────────────
 
-  TRANSPORT_ASSIGNED: ({ storageName, farmerName }) => ({
-    title: 'Nouvelle mission de transport',
-    inApp: `Vous avez été assigné au transport pour "${storageName}" (${farmerName}).`,
-    sms: `ToleTech: Nouvelle mission — transport pour ${farmerName} depuis ${storageName}. Connectez-vous pour accepter.`,
-    whatsapp: `🚚 *ToleTech* — Nouvelle mission\nVous êtes assigné au transport de *${farmerName}*\nDepuis *${storageName}*.\nConnectez-vous pour accepter ou décliner.`,
+  TRANSPORT_ASSIGNED: ({ storageName, farmerName, proposedFee }) => ({
+    title: 'Nouvelle demande de transport',
+    inApp: `${farmerName} vous demande un transport pour "${storageName}" — prix proposé : ${fmt(proposedFee)}.`,
+    sms: `ToleTech: ${farmerName} demande un transport (${storageName}). Prix proposé: ${fmt(proposedFee)}. Connectez-vous pour accepter ou refuser.`,
+    whatsapp: `🚚 *ToleTech* — Demande de transport\n*${farmerName}* demande votre service pour *${storageName}*.\nPrix proposé : *${fmt(proposedFee)}*\nConnectez-vous pour accepter ou refuser.`,
   }),
 
-  TRANSPORT_ACCEPTED: ({ transporterName }) => ({
+  TRANSPORT_ACCEPTED: ({ transporterName, agreedFee }) => ({
     title: 'Transport accepté',
-    inApp: `${transporterName} a accepté votre demande de transport.`,
-    sms: `ToleTech: ${transporterName} a accepté votre transport. Il vous contactera bientôt.`,
-    whatsapp: `✅ *ToleTech* — Transport accepté\n*${transporterName}* prend en charge votre transport.\nIl vous contactera sous peu pour les modalités.`,
+    inApp: `${transporterName} a accepté votre demande de transport pour ${fmt(agreedFee)}.`,
+    sms: `ToleTech: ${transporterName} a accepté votre transport (${fmt(agreedFee)}). Il vous contactera bientôt.`,
+    whatsapp: `✅ *ToleTech* — Transport accepté\n*${transporterName}* prend en charge votre transport.\nMontant convenu : *${fmt(agreedFee)}*`,
+  }),
+
+  TRANSPORT_REJECTED: ({ transporterName, note }) => ({
+    title: 'Demande de transport refusée',
+    inApp: `${transporterName} a refusé votre demande de transport.${note ? ` Motif : ${note}` : ''}`,
+    sms: `ToleTech: ${transporterName} a refusé votre demande de transport.${note ? ` Motif: ${note}` : ''} Contactez un autre transporteur.`,
+    whatsapp: `❌ *ToleTech* — Transport refusé\n*${transporterName}* n'est pas disponible pour cette mission.${note ? `\nMotif : ${note}` : ''}\nChoisissez un autre transporteur sur la plateforme.`,
   }),
 
   TRANSPORT_DELIVERED: ({ storageName }) => ({

@@ -49,15 +49,20 @@ const reservationSchema = new mongoose.Schema(
 
     // S3-BE-01: transport integration
     needsTransport: { type: Boolean, default: false },
-    transportFee: { type: Number, default: 0 }, // agreed price between farmer and transporter (XOF)
+    pickupLocation: String,                       // where transporter picks up goods
+    proposedTransportFee: { type: Number, default: 0 }, // fee proposed by farmer after phone negotiation
+    transportFee: { type: Number, default: 0 },   // locked fee once transporter accepts
     transporter: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     transportStatus: {
       type: String,
-      enum: ['NONE', 'DEMANDÉ', 'ACCEPTÉ', 'LIVRÉ'],
+      enum: ['NONE', 'DEMANDÉ', 'ACCEPTÉ', 'REJETÉ', 'LIVRÉ'],
       default: 'NONE'
     },
     transportRequestedAt: Date,
     transportAcceptedAt: Date,
+    transportRejectedAt: Date,
+    transportRejectionNote: String,               // optional note from transporter on rejection
+    transportExpiresAt: Date,                     // auto-reset if transporter doesn't respond (48h)
     deliveredAt: Date,
 
     // S8-BE-01: litige

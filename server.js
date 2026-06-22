@@ -11,6 +11,8 @@ const startServer = async () => {
 
     // S4: start payout cron job after DB is ready
     require('./utils/payoutJob');
+    // S3: auto-expire pending transport requests after 48h
+    require('./utils/transportExpiryJob');
 
     // PI-SPI: check mTLS cert expiry at startup (blocks start if < 7 days remain)
     if (process.env.PISPI_ENABLED === 'true') {

@@ -327,9 +327,14 @@ exports.deleteReservation = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, message: 'Deleted successfully' });
 });
 
-// S3-BE-03: Assign a transporter to a confirmed reservation
+// S3-BE-03: Farmer requests a transporter for a confirmed reservation
 exports.assignTransporter = catchAsyncErrors(async (req, res, next) => {
-  const { transporterId } = req.body;
+  const { transporterId, proposedTransportFee, pickupLocation } = req.body;
+
+  if (!transporterId) return next(new ErrorHandler('transporterId est requis', 400));
+  if (!proposedTransportFee || proposedTransportFee <= 0) {
+    return next(new ErrorHandler('proposedTransportFee (XOF) est requis', 400));
+  }
 
   const reservation = await Reservation.findById(req.params.id);
   if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
@@ -343,30 +348,47 @@ exports.assignTransporter = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
+  // Block if a request is already pending
+  if (reservation.transportStatus === 'DEMANDÉ') {
+    return next(new ErrorHandler('Une demande de transport est déjà en cours', 400));
+  }
+  if (reservation.transportStatus === 'ACCEPTÉ') {
+    return next(new ErrorHandler('Un transporteur a déjà accepté cette mission', 400));
+  }
+
   const User = require('../models/User');
   const transporter = await User.findOne({ _id: transporterId, roles: 'TRANSPORTEUR', isAvailableForTransport: true });
   if (!transporter) return next(new ErrorHandler('Transporteur non disponible', 404));
 
   reservation.transporter = transporterId;
   reservation.needsTransport = true;
+  reservation.proposedTransportFee = proposedTransportFee;
   reservation.transportStatus = 'DEMANDÉ';
   reservation.transportRequestedAt = new Date();
+  reservation.transportExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h window
+  if (pickupLocation) reservation.pickupLocation = pickupLocation;
   await reservation.save();
 
-  // S3-BE-07: notify the transporter of the assignment
+  const templates = require('../utils/notificationTemplates');
+  const tpl = templates.TRANSPORT_ASSIGNED({
+    farmerName: req.user.name || 'Un agriculteur',
+    storageName: reservation.storage?.toString() || 'entrepôt',
+    proposedFee: proposedTransportFee
+  });
+
   await notify(
     transporterId,
     'TRANSPORT_ASSIGNED',
-    'Nouvelle mission de transport',
-    `Une mission de transport vous a été assignée`,
+    tpl.title,
+    tpl.inApp,
     { reservationId: reservation._id },
-    { sms: true }
+    { sms: true, smsText: tpl.sms, waText: tpl.whatsapp }
   ).catch(err => console.error('Notification error:', err.message));
 
   res.status(200).json({ success: true, data: reservation });
 });
 
-// S3-BE-04: Transporter accepts the mission
+// S3-BE-04: Transporter accepts the mission and locks the proposed fee
 exports.acceptTransport = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.findById(req.params.id);
   if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
@@ -379,20 +401,78 @@ exports.acceptTransport = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Mission not in DEMANDÉ state', 400));
   }
 
+  // Lock the agreed fee from farmer's proposal
+  reservation.transportFee = reservation.proposedTransportFee;
   reservation.transportStatus = 'ACCEPTÉ';
   reservation.transportAcceptedAt = new Date();
+  reservation.transportExpiresAt = undefined;
   await reservation.save();
 
-  // S3-BE-07: notify the farmer
+  const User = require('../models/User');
+  const transporter = await User.findById(req.user.id).select('name');
+
+  const templates = require('../utils/notificationTemplates');
+  const tpl = templates.TRANSPORT_ACCEPTED({
+    transporterName: transporter?.name || 'Le transporteur',
+    agreedFee: reservation.transportFee
+  });
+
   await notify(
     reservation.user,
     'TRANSPORT_ACCEPTED',
-    'Mission de transport acceptée',
-    `Votre transporteur a accepté la mission`,
-    { reservationId: reservation._id }
+    tpl.title,
+    tpl.inApp,
+    { reservationId: reservation._id },
+    { sms: true, smsText: tpl.sms, waText: tpl.whatsapp }
   ).catch(err => console.error('Notification error:', err.message));
 
   res.status(200).json({ success: true, data: reservation });
+});
+
+// S3-BE-04b: Transporter rejects the mission — farmer can renegotiate and retry
+exports.rejectTransport = catchAsyncErrors(async (req, res, next) => {
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  if (reservation.transporter?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  if (reservation.transportStatus !== 'DEMANDÉ') {
+    return next(new ErrorHandler('Mission not in DEMANDÉ state', 400));
+  }
+
+  const { note } = req.body;
+
+  const User = require('../models/User');
+  const transporter = await User.findById(req.user.id).select('name');
+
+  // Reset transport fields so farmer can request a different transporter
+  reservation.transportStatus = 'NONE';
+  reservation.transporter = undefined;
+  reservation.needsTransport = false;
+  reservation.proposedTransportFee = 0;
+  reservation.transportRejectedAt = new Date();
+  reservation.transportRejectionNote = note || '';
+  reservation.transportExpiresAt = undefined;
+  await reservation.save();
+
+  const templates = require('../utils/notificationTemplates');
+  const tpl = templates.TRANSPORT_REJECTED({
+    transporterName: transporter?.name || 'Le transporteur',
+    note: note || ''
+  });
+
+  await notify(
+    reservation.user,
+    'TRANSPORT_REJECTED',
+    tpl.title,
+    tpl.inApp,
+    { reservationId: reservation._id },
+    { sms: true, smsText: tpl.sms, waText: tpl.whatsapp }
+  ).catch(err => console.error('Notification error:', err.message));
+
+  res.status(200).json({ success: true, message: 'Demande de transport refusée' });
 });
 
 // S3-BE-04: Transporter confirms delivery
