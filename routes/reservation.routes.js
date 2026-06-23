@@ -29,6 +29,7 @@ router.put('/:id/respond', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', '
 router.put('/:id/assign-transporter', isAuthenticatedUser, authorizeRoles('AGRICULTEUR', 'ADMIN'), reservationController.assignTransporter);
 router.put('/:id/accept-transport', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), reservationController.acceptTransport);
 router.put('/:id/reject-transport', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), reservationController.rejectTransport);
+router.put('/:id/cancel-transport', isAuthenticatedUser, authorizeRoles('AGRICULTEUR', 'ADMIN'), reservationController.cancelTransport);
 router.put('/:id/confirm-delivery', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), reservationController.confirmDelivery);
 // S8: admin adjust + dispute management
 router.put('/:id/adjust', isAuthenticatedUser, authorizeRoles('ADMIN'), reservationController.adjustReservation);

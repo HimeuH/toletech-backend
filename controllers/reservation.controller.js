@@ -289,7 +289,8 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
 exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.findById(req.params.id)
     .populate('user', 'name email')
-    .populate({ path: 'storage', populate: { path: 'owner', select: 'name email' } });
+    .populate({ path: 'storage', populate: { path: 'owner', select: 'name email' } })
+    .populate('transporter', 'name phone');
 
   if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
 
@@ -447,9 +448,9 @@ exports.rejectTransport = catchAsyncErrors(async (req, res, next) => {
   const User = require('../models/User');
   const transporter = await User.findById(req.user.id).select('name');
 
-  // Reset transport fields so farmer can request a different transporter
-  reservation.transportStatus = 'NONE';
-  reservation.transporter = undefined;
+  // Keep transporter linked so they can see the rejected mission in history,
+  // but mark as REJETÉ and clear fields so farmer can request a different transporter
+  reservation.transportStatus = 'REJETÉ';
   reservation.needsTransport = false;
   reservation.proposedTransportFee = 0;
   reservation.transportRejectedAt = new Date();
@@ -473,6 +474,32 @@ exports.rejectTransport = catchAsyncErrors(async (req, res, next) => {
   ).catch(err => console.error('Notification error:', err.message));
 
   res.status(200).json({ success: true, message: 'Demande de transport refusée' });
+});
+
+// S3-BE-05: Farmer cancels pending transport request
+exports.cancelTransport = catchAsyncErrors(async (req, res, next) => {
+  const reservation = await Reservation.findById(req.params.id);
+  if (!reservation) return next(new ErrorHandler('Reservation not found', 404));
+
+  const isFarmer = reservation.user?.toString() === req.user.id;
+  if (!isFarmer && !req.user.roles.includes('ADMIN')) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  if (reservation.transportStatus !== 'DEMANDÉ') {
+    return next(new ErrorHandler('Aucune demande de transport en attente', 400));
+  }
+
+  reservation.transportStatus = 'NONE';
+  reservation.needsTransport = false;
+  reservation.transporter = undefined;
+  reservation.proposedTransportFee = 0;
+  reservation.pickupLocation = undefined;
+  reservation.transportRequestedAt = undefined;
+  reservation.transportExpiresAt = undefined;
+  await reservation.save();
+
+  res.status(200).json({ success: true, message: 'Demande de transport annulée' });
 });
 
 // S3-BE-04: Transporter confirms delivery
