@@ -241,6 +241,25 @@ exports.processPaidBilling = async (billing) => {
 };
 
 // PUT /api/v1/billings/:id/status — admin only
+// PUT /api/v1/billings/:id/recalculate — admin: sync billing amounts from reservation
+exports.recalculateBilling = catchAsyncErrors(async (req, res, next) => {
+  const billing = await Billing.findById(req.params.id).populate('reservation');
+  if (!billing) return next(new ErrorHandler('Billing not found', 404));
+
+  const reservation = billing.reservation;
+  if (!reservation) return next(new ErrorHandler('Reservation not found on billing', 404));
+
+  const transportAmount = reservation.transportStatus === 'ACCEPTÉ' || reservation.transportStatus === 'LIVRÉ'
+    ? (reservation.transportFee || 0)
+    : 0;
+
+  billing.transportAmount = transportAmount;
+  billing.totalAmount = billing.storageAmount + transportAmount;
+  await billing.save();
+
+  res.status(200).json({ success: true, data: billing });
+});
+
 exports.updateBillingStatus = catchAsyncErrors(async (req, res, next) => {
   const { status } = req.body;
 

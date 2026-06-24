@@ -8,5 +8,6 @@ router.get('/my', isAuthenticatedUser, billingController.getMyBillings);
 router.get('/storage/:storageId', isAuthenticatedUser, billingController.getBillingsByStorage);
 router.get('/:id', isAuthenticatedUser, billingController.getBillingById);
 router.put('/:id/status', isAuthenticatedUser, authorizeRoles('ADMIN'), billingController.updateBillingStatus);
+router.put('/:id/recalculate', isAuthenticatedUser, authorizeRoles('ADMIN'), billingController.recalculateBilling);
 
 module.exports = router;

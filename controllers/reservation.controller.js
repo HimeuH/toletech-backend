@@ -6,6 +6,18 @@ const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
 const notify = require('../utils/notify');
 
+// Helper: attach billing totalAmount to a list of reservation documents
+const attachBillings = async (reservations) => {
+  const ids = reservations.map(r => r._id);
+  const billings = await Billing.find({ reservation: { $in: ids } }).select('reservation totalAmount storageAmount transportAmount status');
+  const map = new Map(billings.map(b => [b.reservation.toString(), b]));
+  return reservations.map(r => {
+    const b = map.get(r._id.toString());
+    const plain = r.toObject ? r.toObject() : r;
+    return b ? { ...plain, billing: { totalAmount: b.totalAmount, storageAmount: b.storageAmount, transportAmount: b.transportAmount, status: b.status } } : plain;
+  });
+};
+
 // Helper: convert quantity to storage capacityUnit for comparison (best-effort)
 const toStorageUnit = (quantity, quantityUnit, capacityUnit) => {
   if (!quantity || !quantityUnit || !capacityUnit) return null;
@@ -27,6 +39,10 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
       return next(new ErrorHandler('Invalid farmer specified for onBehalfOf', 400));
     }
     userId = req.body.onBehalfOf;
+  }
+
+  if (!req.body.quantity || req.body.quantity <= 0) {
+    return next(new ErrorHandler('La quantité à stocker est requise', 400));
   }
 
   // S2-BE-03: validate available capacity before creating
@@ -83,8 +99,9 @@ exports.getAllReservations = catchAsyncErrors(async (req, res, next) => {
 
   const result = await paginate(
     Reservation, query, page, limit,
-    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location' }]
+    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location costPerKgPerDay' }]
   );
+  result.data = await attachBillings(result.data);
   res.status(200).json({ success: true, ...result });
 });
 
@@ -93,8 +110,12 @@ exports.getMyReservations = catchAsyncErrors(async (req, res, next) => {
   const { page, limit } = req.query;
   const result = await paginate(
     Reservation, { user: req.user.id }, page, limit,
-    { path: 'storage', select: 'name location address' }
+    [
+      { path: 'user', select: 'name email phone' },
+      { path: 'storage', select: 'name location address costPerKgPerDay' }
+    ]
   );
+  result.data = await attachBillings(result.data);
   res.status(200).json({ success: true, ...result });
 });
 
@@ -109,8 +130,9 @@ exports.getOwnerReservations = catchAsyncErrors(async (req, res, next) => {
   const { page, limit } = req.query;
   const result = await paginate(
     Reservation, query, page, limit,
-    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location address' }]
+    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location address costPerKgPerDay' }]
   );
+  result.data = await attachBillings(result.data);
   res.status(200).json({ success: true, ...result });
 });
 
@@ -408,6 +430,15 @@ exports.acceptTransport = catchAsyncErrors(async (req, res, next) => {
   reservation.transportAcceptedAt = new Date();
   reservation.transportExpiresAt = undefined;
   await reservation.save();
+
+  // Update billing to include the locked transport fee
+  const transportFee = reservation.transportFee;
+  const existingBilling = await Billing.findOne({ reservation: reservation._id });
+  if (existingBilling && transportFee > 0) {
+    existingBilling.transportAmount = transportFee;
+    existingBilling.totalAmount = existingBilling.storageAmount + transportFee;
+    await existingBilling.save();
+  }
 
   const User = require('../models/User');
   const transporter = await User.findById(req.user.id).select('name');
