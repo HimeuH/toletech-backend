@@ -26,6 +26,7 @@ const reservationSchema = new mongoose.Schema(
     // BE-013: owner response
     ownerMessage: String,
     // BE-012: cargo details
+    product: { type: String, required: true },
     notes: String,
     quantity: Number,
     quantityUnit: {

@@ -65,7 +65,8 @@ const storageSchema = new mongoose.Schema(
       type: Number,
       required: true
     },
-    productType: String,
+    productType: String,         // legacy single-value field
+    acceptedProducts: [String],  // multi-product list declared by owner
     isAvailable: {
       type: Boolean,
       default: true

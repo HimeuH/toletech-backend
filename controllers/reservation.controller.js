@@ -41,6 +41,10 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
     userId = req.body.onBehalfOf;
   }
 
+  if (!req.body.product?.trim()) {
+    return next(new ErrorHandler('Le produit à stocker est requis', 400));
+  }
+
   if (!req.body.quantity || req.body.quantity <= 0) {
     return next(new ErrorHandler('La quantité à stocker est requise', 400));
   }
@@ -196,7 +200,7 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Apply editable fields
-  const editableFields = ['reservedFrom', 'reservedTo', 'notes', 'quantity', 'quantityUnit'];
+  const editableFields = ['reservedFrom', 'reservedTo', 'notes', 'quantity', 'quantityUnit', 'product'];
   editableFields.forEach(field => {
     if (updates[field] !== undefined) reservation[field] = updates[field];
   });
@@ -310,7 +314,7 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
 // Get reservation by ID
 exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
   const reservation = await Reservation.findById(req.params.id)
-    .populate('user', 'name email')
+    .populate('user', 'name email phone')
     .populate({ path: 'storage', populate: { path: 'owner', select: 'name email' } })
     .populate('transporter', 'name phone');
 
@@ -318,8 +322,9 @@ exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
 
   const isOwner = reservation.user?._id?.toString() === req.user.id;
   const isStorageOwner = reservation.storage?.owner?._id?.toString() === req.user.id;
+  const isTransporter = reservation.transporter?._id?.toString() === req.user.id;
 
-  if (!req.user.roles.includes('ADMIN') && !isOwner && !isStorageOwner) {
+  if (!req.user.roles.includes('ADMIN') && !isOwner && !isStorageOwner && !isTransporter) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
