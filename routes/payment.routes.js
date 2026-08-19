@@ -5,6 +5,7 @@ const {
   initiateCheckout,
   handleWebhook,
   handlePispiWebhook,
+  handleOrangeMoneyWebhook,
   redirectSuccess,
   redirectError,
   getPaymentHistory,
@@ -17,8 +18,9 @@ const {
 } = require('../controllers/payment.controller');
 
 // Webhook — no auth, raw body is preserved by app.js middleware
-// PISPI route must be registered BEFORE the generic /:provider route
+// PISPI and Orange Money routes must be registered BEFORE the generic /:provider route
 router.post('/webhook/pispi', handlePispiWebhook);
+router.post('/webhook/orange_money', handleOrangeMoneyWebhook);
 router.post('/webhook/:provider', handleWebhook);
 
 // Redirect proxy — Wave calls these HTTPS URLs, we forward browser to local frontend

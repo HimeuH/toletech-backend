@@ -305,6 +305,23 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
     req.body.roles = [...new Set([...nonPrivileged, ...existingPrivileged])];
     if (req.body.roles.length === 0) delete req.body.roles;
   }
+
+  // Only touch email if it actually changed, and only against OTHER users —
+  // the form always resubmits the current email, which must not self-collide
+  // with the unique index (e.g. when just adding a role).
+  if (req.body.email !== undefined) {
+    const normalizedEmail = req.body.email.toLowerCase().trim();
+    const currentUser = await User.findById(req.user.id).select('email');
+    if (normalizedEmail === currentUser.email) {
+      delete req.body.email;
+    } else {
+      const emailTaken = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user.id } });
+      if (emailTaken) {
+        return next(new ErrorHandler('Un compte existe déjà avec cette adresse email.', 409));
+      }
+    }
+  }
+
   const newUserData = {};
   allowed.forEach((field) => {
     if (req.body[field] !== undefined) newUserData[field] = req.body[field];

@@ -268,6 +268,70 @@ async function processPispiFailure(event) {
 }
 
 // ---------------------------------------------------------------------------
+// POST /api/v1/payments/webhook/orange_money
+// Orange Money-specific webhook handler.
+// • X-Sonatel-Signature verification (t=,v1= HMAC-SHA256, timingSafeEqual, replay guard)
+// • WebhookEvent dedup via unique index on X-Sonatel-Idempotency-Key (code 11000 = already processed)
+// • Reconciles on our own `reference` (billing._id, set at QR-creation time) — not the provider's id
+// • Delegates wallet crediting to existing processPaidBilling()
+// ---------------------------------------------------------------------------
+exports.handleOrangeMoneyWebhook = async (req, res) => {
+  const rawBody = req.body; // Buffer, preserved by express.raw()
+
+  const orangeMoney = require('../utils/providers/orange_money');
+  let event;
+  try {
+    event = orangeMoney.verifyWebhookSignature(rawBody, req.headers['x-sonatel-signature'] || '');
+  } catch (err) {
+    console.error('[webhook:orange_money] Signature error:', err.message);
+    return res.status(400).json({ error: 'Invalid signature' });
+  }
+
+  // Dedup — unique index on eventId; duplicate key = already processed
+  const eventId = req.headers['x-sonatel-idempotency-key'];
+  if (eventId) {
+    try {
+      await WebhookEvent.create({ eventId, source: 'ORANGE_MONEY', type: event.status, payload: event });
+    } catch (e) {
+      if (e.code === 11000) return res.status(200).json({ received: true, note: 'duplicate' });
+      console.error('[webhook:orange_money] WebhookEvent.create error:', e.message);
+      return res.status(500).json({ error: 'Internal error' });
+    }
+  }
+
+  if (event.status !== 'SUCCESS') {
+    console.log(`[webhook:orange_money] status="${event.status}" — not SUCCESS, ignoring`);
+    return res.status(200).json({ received: true });
+  }
+
+  if (!event.reference) {
+    return res.status(200).json({ received: true });
+  }
+
+  try {
+    const billing = await Billing.findById(event.reference);
+
+    // Idempotent — if already paid, just acknowledge
+    if (!billing || billing.status === 'PAID') {
+      return res.status(200).json({ received: true });
+    }
+
+    billing.status = 'PAID';
+    billing.paidAt = new Date();
+    billing.providerRef = event.transactionId;
+    billing.providerStatus = event.status;
+    await billing.save();
+
+    await processPaidBilling(billing);
+  } catch (err) {
+    console.error('[webhook:orange_money] processing error:', err.message);
+    return res.status(500).json({ error: 'Processing error' }); // Orange Money will retry
+  }
+
+  return res.status(200).json({ received: true });
+};
+
+// ---------------------------------------------------------------------------
 // POST /api/v1/payments/webhook/:provider
 // Raw body required — mounted with express.raw() in app.js before express.json()
 // ---------------------------------------------------------------------------

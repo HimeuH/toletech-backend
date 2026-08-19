@@ -324,7 +324,8 @@ exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
   const isStorageOwner = reservation.storage?.owner?._id?.toString() === req.user.id;
   const isTransporter = reservation.transporter?._id?.toString() === req.user.id;
 
-  if (!req.user.roles.includes('ADMIN') && !isOwner && !isStorageOwner && !isTransporter) {
+  const isPrivileged = req.user.roles.includes('ADMIN') || req.user.roles.includes('AGENT');
+  if (!isPrivileged && !isOwner && !isStorageOwner && !isTransporter) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
@@ -584,7 +585,8 @@ exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
 exports.getTransportMissions = catchAsyncErrors(async (req, res, next) => {
   const { status, page, limit } = req.query;
   const query = { transporter: req.user.id };
-  if (status) query.transportStatus = status;
+  // 'NONE' means no active transport relationship — never a real mission to act on
+  query.transportStatus = status || { $ne: 'NONE' };
 
   const result = await paginate(
     Reservation, query, page, limit,

@@ -115,8 +115,30 @@ exports.getBillingById = catchAsyncErrors(async (req, res, next) => {
   const isOwner = billing.user?._id?.toString() === req.user.id;
   const storageDoc = await Storage.findById(billing.storage?._id);
   const isStorageOwner = storageDoc?.owner?.toString() === req.user.id;
+  const isPrivileged = req.user.roles.includes('ADMIN') || req.user.roles.includes('AGENT');
 
-  if (!req.user.roles.includes('ADMIN') && !isOwner && !isStorageOwner) {
+  if (!isPrivileged && !isOwner && !isStorageOwner) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  res.status(200).json({ success: true, data: billing });
+});
+
+// GET /api/v1/billings/by-reservation/:reservationId
+exports.getBillingByReservation = catchAsyncErrors(async (req, res, next) => {
+  const billing = await Billing.findOne({ reservation: req.params.reservationId })
+    .populate('reservation')
+    .populate('user', 'name email')
+    .populate('storage', 'name location');
+
+  if (!billing) return next(new ErrorHandler('Aucune facture pour cette réservation', 404));
+
+  const isOwner = billing.user?._id?.toString() === req.user.id;
+  const storageDoc = await Storage.findById(billing.storage?._id);
+  const isStorageOwner = storageDoc?.owner?.toString() === req.user.id;
+  const isPrivileged = req.user.roles.includes('ADMIN') || req.user.roles.includes('AGENT');
+
+  if (!isPrivileged && !isOwner && !isStorageOwner) {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
