@@ -10,6 +10,24 @@ const sendSms = require("../utils/sendSms");
 const crypto = require("crypto");
 const cloudinary = require("cloudinary");
 
+// B9 — WebOTP (https://wicg.github.io/web-otp/) lets Chrome on Android
+// auto-fill the code from SMS without the user opening the Messages app,
+// but only if the SMS body's LAST line is exactly "@<domain> #<code>",
+// domain being the site actually serving the page (no scheme, no path).
+// Derived from FRONTEND_URL so this activates automatically once that's
+// set to the real production domain — no code change needed then.
+const webOtpDomain = () => {
+  try {
+    return new URL(process.env.FRONTEND_URL).host;
+  } catch {
+    return null;
+  }
+};
+const withWebOtpSuffix = (message, code) => {
+  const domain = webOtpDomain();
+  return domain ? `${message}\n@${domain} #${code}` : message;
+};
+
 // Helper: generate a 6-digit OTP, save to DB, and send via SMS or email
 // Controlled by OTP_CHANNEL env var: 'email' | 'sms' (default: 'sms')
 const generateAndSendOtp = async (phone, type = 'REGISTER', email = null) => {
@@ -19,9 +37,9 @@ const generateAndSendOtp = async (phone, type = 'REGISTER', email = null) => {
   await Otp.deleteMany({ phone, type }); // clear previous OTPs of same type only
   await Otp.create({ phone, code, expiresAt, type });
 
-  const message = type === 'RESET'
-    ? `Votre code de réinitialisation ToleTech est: ${code}. Valide 10 minutes.`
-    : `Your ToleTech verification code is: ${code}. Valid for 10 minutes.`;
+  const body = type === 'RESET'
+    ? `Votre code de réinitialisation ToleTech est : ${code}. Valide 10 minutes.`
+    : `Votre code de vérification ToleTech est : ${code}. Valide 10 minutes.`;
 
   const subject = type === 'RESET'
     ? 'ToleTech — Code de réinitialisation'
@@ -30,11 +48,12 @@ const generateAndSendOtp = async (phone, type = 'REGISTER', email = null) => {
   const channel = process.env.OTP_CHANNEL || 'sms';
 
   if (channel === 'email' && email) {
-    void sendEmail({ email, subject, message }).catch((err) =>
+    void sendEmail({ email, subject, message: body }).catch((err) =>
       console.error("[OTP Email] Failed to send:", err?.message || err),
     );
   } else {
-    void sendSms(phone, message).catch((err) =>
+    // The WebOTP suffix only makes sense on the SMS the OS actually parses.
+    void sendSms(phone, withWebOtpSuffix(body, code)).catch((err) =>
       console.error("[OTP SMS] Failed to send:", err?.message || err),
     );
   }
@@ -107,7 +126,7 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
-  sendToken(user, 201, res);
+  await sendToken(user, 201, req, res);
 });
 
 // Login User  =>  /api/v1/auth/login
@@ -147,7 +166,7 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Email/téléphone ou mot de passe incorrect.", 401, 'AUTH_INVALID_CREDENTIALS'));
   }
 
-  sendToken(user, 200, res);
+  await sendToken(user, 200, req, res);
 });
 
 // Forgot Password (phone-based)   =>  POST /api/v1/auth/password/forgot
@@ -246,7 +265,7 @@ exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
 
   await user.save();
 
-  sendToken(user, 200, res);
+  await sendToken(user, 200, req, res);
 });
 
 // Get currently logged in user details   =>   /api/v1/me
@@ -273,7 +292,7 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
   user.mustChangePassword = false;
   await user.save();
 
-  sendToken(user, 200, res);
+  await sendToken(user, 200, req, res);
 });
 
 // Update user profile   =>   /api/v1/me/update
@@ -353,15 +372,62 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
 
 // Logout user   =>   /api/v1/logout
 exports.logout = catchAsyncErrors(async (req, res, next) => {
+  // B8 — revoke only THIS device's refresh token (not every session the user
+  // has open elsewhere): pull the matching entry by its hash.
+  const rawRefreshToken = req.cookies?.refreshToken;
+  if (rawRefreshToken) {
+    const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+    await User.updateOne(
+      { 'refreshTokens.tokenHash': tokenHash },
+      { $pull: { refreshTokens: { tokenHash } } },
+    );
+  }
+
   res.cookie("token", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+  });
+  res.cookie('refreshToken', null, {
+    expires: new Date(Date.now()),
+    httpOnly: true,
+    path: '/api/v1/auth',
   });
 
   res.status(200).json({
     success: true,
     message: "Déconnexion réussie.",
   });
+});
+
+// B8 — POST /api/v1/auth/refresh. No isAuthenticatedUser here: this is
+// called precisely because the access token has expired, using the
+// long-lived refresh token cookie instead. Rotates the refresh token
+// (single-use) so a leaked-then-replayed old cookie is immediately invalid.
+exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
+  const rawRefreshToken = req.cookies?.refreshToken;
+  if (!rawRefreshToken) {
+    return next(new ErrorHandler('Session expirée. Veuillez vous reconnecter.', 401, 'AUTH_REQUIRED'));
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+  const user = await User.findOne({ 'refreshTokens.tokenHash': tokenHash }).select('+refreshTokens');
+
+  if (!user) {
+    res.cookie('refreshToken', null, { expires: new Date(0), httpOnly: true, path: '/api/v1/auth' });
+    return next(new ErrorHandler('Session expirée. Veuillez vous reconnecter.', 401, 'AUTH_INVALID'));
+  }
+
+  const entry = user.refreshTokens.find((t) => t.tokenHash === tokenHash);
+  // Always drop the presented token — refresh tokens are single-use.
+  user.refreshTokens = user.refreshTokens.filter((t) => t.tokenHash !== tokenHash);
+
+  if (!entry || entry.expiresAt < new Date()) {
+    await user.save({ validateBeforeSave: false });
+    res.cookie('refreshToken', null, { expires: new Date(0), httpOnly: true, path: '/api/v1/auth' });
+    return next(new ErrorHandler('Session expirée. Veuillez vous reconnecter.', 401, 'AUTH_EXPIRED'));
+  }
+
+  await sendToken(user, 200, req, res);
 });
 
 // Admin Routes
@@ -467,7 +533,7 @@ exports.verifyOtp = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Utilisateur introuvable.", 404, 'NOT_FOUND'));
   }
 
-  sendToken(user, 200, res);
+  await sendToken(user, 200, req, res);
 });
 
 // Verify phone change   =>   /api/v1/auth/verify-phone-change (authenticated)
@@ -544,7 +610,7 @@ exports.requestPhoneChange = catchAsyncErrors(async (req, res, next) => {
 
     void sendSms(
       user.phone,
-      `ToleTech — Code de vérification identité: ${code}. Valide 10 min.`,
+      withWebOtpSuffix(`ToleTech — Code de vérification identité: ${code}. Valide 10 min.`, code),
     ).catch((err) => console.error('[PhoneChange SMS]', err?.message || err));
 
     return res.status(200).json({
@@ -661,7 +727,7 @@ exports.submitNewPhone = catchAsyncErrors(async (req, res, next) => {
 
   void sendSms(
     newPhone,
-    `ToleTech — Code de confirmation nouveau numéro: ${code}. Valide 10 min.`,
+    withWebOtpSuffix(`ToleTech — Code de confirmation nouveau numéro: ${code}. Valide 10 min.`, code),
   ).catch((err) => console.error('[NewPhone SMS]', err?.message || err));
 
   res.status(200).json({
