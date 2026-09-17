@@ -38,8 +38,10 @@ module.exports = async function sendPush(userId, payload) {
     notification: {
       title: payload.title,
       body: payload.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/badge-96.png',
+      // No dedicated small monochrome "badge" icon yet (redesign plan §6.1) —
+      // reuse the 96x96 app icon until one's designed.
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-96x96.png',
       tag: payload.tag || payload.category || 'toletech',
       renotify: true,
       timestamp: Date.now(),
