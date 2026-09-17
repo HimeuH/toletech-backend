@@ -580,13 +580,37 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
 });
 
 // S7-FE-01: Update notification channel preferences   =>   PUT /api/v1/auth/me/notif-prefs
+// B4 (redesign plan §6.4) — extended to push + per-category overrides. Uses
+// $set with dot paths instead of replacing the whole notifPrefs subdocument,
+// so a partial body (e.g. just { push: false } from a single toggle in the
+// preferences screen) doesn't wipe out the other channels/categories.
 exports.updateNotifPrefs = catchAsyncErrors(async (req, res, next) => {
-  const { sms, whatsapp } = req.body;
-  const user = await User.findByIdAndUpdate(
-    req.user.id,
-    { notifPrefs: { sms: sms !== false, whatsapp: !!whatsapp } },
-    { new: true }
-  );
+  const { sms, whatsapp, push, categories } = req.body;
+
+  const set = {};
+  if (sms !== undefined) set['notifPrefs.sms'] = !!sms;
+  if (whatsapp !== undefined) set['notifPrefs.whatsapp'] = !!whatsapp;
+  if (push !== undefined) set['notifPrefs.push'] = !!push;
+
+  const VALID_CATEGORIES = ['reservations', 'transport', 'paiements', 'compte'];
+  const VALID_CHANNELS = ['push', 'sms', 'whatsapp'];
+  if (categories && typeof categories === 'object') {
+    for (const cat of Object.keys(categories)) {
+      if (!VALID_CATEGORIES.includes(cat)) continue;
+      const channels = categories[cat];
+      if (!channels || typeof channels !== 'object') continue;
+      for (const ch of Object.keys(channels)) {
+        if (!VALID_CHANNELS.includes(ch)) continue;
+        set[`notifPrefs.categories.${cat}.${ch}`] = !!channels[ch];
+      }
+    }
+  }
+
+  if (Object.keys(set).length === 0) {
+    return next(new ErrorHandler('Aucune préférence à mettre à jour', 400, 'VALIDATION_ERROR'));
+  }
+
+  const user = await User.findByIdAndUpdate(req.user.id, { $set: set }, { new: true });
   res.status(200).json({ success: true, data: user });
 });
 

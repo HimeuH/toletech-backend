@@ -75,10 +75,20 @@ const userSchema = new mongoose.Schema(
     mustChangePassword: { type: Boolean, default: false },
     pendingPhone: String,
 
-    // Notification channel preferences (S7)
+    // Notification channel preferences (S7; push + per-category overrides
+    // added in B4, redesign plan §6.4). Category overrides are optional —
+    // when a category has no explicit value for a channel, utils/notify.js
+    // falls back to the top-level sms/whatsapp/push default below.
     notifPrefs: {
       sms:      { type: Boolean, default: true },
       whatsapp: { type: Boolean, default: false },
+      push:     { type: Boolean, default: true },
+      categories: {
+        reservations: { push: Boolean, sms: Boolean, whatsapp: Boolean },
+        transport:    { push: Boolean, sms: Boolean, whatsapp: Boolean },
+        paiements:    { push: Boolean, sms: Boolean, whatsapp: Boolean },
+        compte:       { push: Boolean, sms: Boolean, whatsapp: Boolean },
+      },
     },
 
     resetPasswordToken: String,

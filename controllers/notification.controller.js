@@ -11,6 +11,11 @@ exports.getMyNotifications = catchAsyncErrors(async (req, res, next) => {
   if (req.query.isRead !== undefined) {
     query.isRead = req.query.isRead === 'true';
   }
+  // B4 — the front's notification centre groups by category (Réservations,
+  // Transport, Paiements, Compte) and lets the user filter to one.
+  if (req.query.category) {
+    query.category = req.query.category;
+  }
 
   const result = await paginate(Notification, query, page, limit, '', { createdAt: -1 });
   res.status(200).json({ success: true, ...result });
