@@ -101,8 +101,8 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     return res.status(201).json({
       success: true,
       message: channel === 'email' && email
-        ? "Registration successful. Please verify your account with the OTP sent via email."
-        : "Registration successful. Please verify your phone number with the OTP sent via SMS.",
+        ? "Inscription réussie. Vérifiez votre compte avec le code reçu par email."
+        : "Inscription réussie. Vérifiez votre numéro avec le code reçu par SMS.",
       phone,
     });
   }
@@ -115,7 +115,7 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
   const { email, phone, password } = req.body;
 
   if (!email && !phone) {
-    return next(new ErrorHandler("Please provide email or phone", 400));
+    return next(new ErrorHandler("Veuillez indiquer votre email ou votre numéro de téléphone.", 400, 'VALIDATION_ERROR'));
   }
 
   // Finding user in database by email or phone
@@ -123,18 +123,19 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
   const user = await User.findOne(query).select("+password");
 
   if (!user) {
-    return next(new ErrorHandler("Invalid Email or Password", 401));
+    return next(new ErrorHandler("Email/téléphone ou mot de passe incorrect.", 401, 'AUTH_INVALID_CREDENTIALS'));
   }
 
   if (user.isActive === false) {
-    return next(new ErrorHandler("Account deactivated. Contact admin.", 403));
+    return next(new ErrorHandler("Ce compte a été désactivé. Contactez un administrateur.", 403, 'ACCOUNT_DEACTIVATED'));
   }
 
   if (!user.isVerified) {
     return next(
       new ErrorHandler(
-        "Phone number not verified. Please verify your account first.",
+        "Numéro non vérifié. Veuillez vérifier votre compte.",
         403,
+        'PHONE_NOT_VERIFIED',
       ),
     );
   }
@@ -143,7 +144,7 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
   const isPasswordMatched = await user.comparePassword(password);
 
   if (!isPasswordMatched) {
-    return next(new ErrorHandler("Invalid Email or Password", 401));
+    return next(new ErrorHandler("Email/téléphone ou mot de passe incorrect.", 401, 'AUTH_INVALID_CREDENTIALS'));
   }
 
   sendToken(user, 200, res);
@@ -154,13 +155,13 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
   const { phone } = req.body;
 
   if (!phone) {
-    return next(new ErrorHandler("Phone number is required", 400));
+    return next(new ErrorHandler("Le numéro de téléphone est requis.", 400, 'VALIDATION_ERROR'));
   }
 
   const user = await User.findOne({ phone });
 
   if (!user) {
-    return next(new ErrorHandler("No account found with this phone number", 404));
+    return next(new ErrorHandler("Aucun compte trouvé avec ce numéro.", 404, 'NOT_FOUND'));
   }
 
   await generateAndSendOtp(phone, 'RESET', user.email);
@@ -169,8 +170,8 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: channel === 'email' && user.email
-      ? "OTP sent via email. Use it to verify your identity before resetting your password."
-      : "OTP sent via SMS. Use it to verify your identity before resetting your password.",
+      ? "Code envoyé par email. Utilisez-le pour vérifier votre identité avant de réinitialiser votre mot de passe."
+      : "Code envoyé par SMS. Utilisez-le pour vérifier votre identité avant de réinitialiser votre mot de passe.",
     phone,
   });
 });
@@ -180,25 +181,25 @@ exports.verifyResetOtp = catchAsyncErrors(async (req, res, next) => {
   const { phone, code } = req.body;
 
   if (!phone || !code) {
-    return next(new ErrorHandler("Phone and OTP code are required", 400));
+    return next(new ErrorHandler("Le numéro et le code OTP sont requis.", 400, 'VALIDATION_ERROR'));
   }
 
   const otp = await Otp.findOne({ phone, code, type: 'RESET' });
 
   if (!otp) {
-    return next(new ErrorHandler("Invalid OTP code", 400));
+    return next(new ErrorHandler("Code OTP invalide.", 400, 'OTP_INVALID'));
   }
 
   if (otp.expiresAt < new Date()) {
     await otp.deleteOne();
-    return next(new ErrorHandler("OTP has expired. Request a new one.", 400));
+    return next(new ErrorHandler("Le code a expiré. Demandez-en un nouveau.", 400, 'OTP_EXPIRED'));
   }
 
   await otp.deleteOne();
 
   const user = await User.findOne({ phone });
   if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    return next(new ErrorHandler("Utilisateur introuvable.", 404, 'NOT_FOUND'));
   }
 
   // Generate a short-lived reset token (15 min) stored hashed on the user doc
@@ -208,7 +209,7 @@ exports.verifyResetOtp = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({
     success: true,
     resetToken,
-    message: "OTP verified. Use the resetToken to set your new password within 15 minutes.",
+    message: "Code vérifié. Utilisez le resetToken pour définir votre nouveau mot de passe dans les 15 minutes.",
   });
 });
 
@@ -217,11 +218,11 @@ exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
   const { resetToken, password, confirmPassword } = req.body;
 
   if (!resetToken || !password || !confirmPassword) {
-    return next(new ErrorHandler("resetToken, password and confirmPassword are required", 400));
+    return next(new ErrorHandler("resetToken, password et confirmPassword sont requis.", 400, 'VALIDATION_ERROR'));
   }
 
   if (password !== confirmPassword) {
-    return next(new ErrorHandler("Passwords do not match", 400));
+    return next(new ErrorHandler("Les mots de passe ne correspondent pas.", 400, 'VALIDATION_ERROR'));
   }
 
   const resetPasswordToken = crypto
@@ -235,7 +236,7 @@ exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new ErrorHandler("Reset token is invalid or has expired", 400));
+    return next(new ErrorHandler("Le lien de réinitialisation est invalide ou a expiré.", 400, 'RESET_TOKEN_INVALID'));
   }
 
   user.password = password;
@@ -265,7 +266,7 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
   // Check previous user password
   const isMatched = await user.comparePassword(req.body.oldPassword);
   if (!isMatched) {
-    return next(new ErrorHandler("Old password is incorrect"));
+    return next(new ErrorHandler("L'ancien mot de passe est incorrect.", 400, 'PASSWORD_INCORRECT'));
   }
 
   user.password = req.body.password;
@@ -359,7 +360,7 @@ exports.logout = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    message: "Logged out",
+    message: "Déconnexion réussie.",
   });
 });
 
@@ -440,17 +441,17 @@ exports.verifyOtp = catchAsyncErrors(async (req, res, next) => {
   const { phone, code } = req.body;
 
   if (!phone || !code) {
-    return next(new ErrorHandler("Phone and OTP code are required", 400));
+    return next(new ErrorHandler("Le numéro et le code OTP sont requis.", 400, 'VALIDATION_ERROR'));
   }
 
   const otp = await Otp.findOne({ phone, code, verified: false });
 
   if (!otp) {
-    return next(new ErrorHandler("Invalid OTP code", 400));
+    return next(new ErrorHandler("Code OTP invalide.", 400, 'OTP_INVALID'));
   }
 
   if (otp.expiresAt < new Date()) {
-    return next(new ErrorHandler("OTP has expired", 400));
+    return next(new ErrorHandler("Le code a expiré.", 400, 'OTP_EXPIRED'));
   }
 
   otp.verified = true;
@@ -463,7 +464,7 @@ exports.verifyOtp = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    return next(new ErrorHandler("Utilisateur introuvable.", 404, 'NOT_FOUND'));
   }
 
   sendToken(user, 200, res);
@@ -474,12 +475,12 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
   const { code } = req.body;
 
   if (!code) {
-    return next(new ErrorHandler("OTP code is required", 400));
+    return next(new ErrorHandler("Le code OTP est requis.", 400, 'VALIDATION_ERROR'));
   }
 
   const currentUser = await User.findById(req.user.id);
   if (!currentUser.pendingPhone) {
-    return next(new ErrorHandler("No pending phone change found", 400));
+    return next(new ErrorHandler("Aucune demande de changement de numéro en cours.", 400, 'NO_PENDING_REQUEST'));
   }
 
   const otp = await Otp.findOne({
@@ -489,11 +490,11 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (!otp) {
-    return next(new ErrorHandler("Invalid OTP code", 400));
+    return next(new ErrorHandler("Code OTP invalide.", 400, 'OTP_INVALID'));
   }
 
   if (otp.expiresAt < new Date()) {
-    return next(new ErrorHandler("OTP has expired", 400));
+    return next(new ErrorHandler("Le code a expiré.", 400, 'OTP_EXPIRED'));
   }
 
   otp.verified = true;
@@ -507,7 +508,7 @@ exports.verifyPhoneChange = catchAsyncErrors(async (req, res, next) => {
     .status(200)
     .json({
       success: true,
-      message: "Phone number updated successfully",
+      message: "Numéro de téléphone mis à jour avec succès.",
       data: currentUser,
     });
 });
@@ -757,22 +758,22 @@ exports.resendOtp = catchAsyncErrors(async (req, res, next) => {
   const { phone } = req.body;
 
   if (!phone) {
-    return next(new ErrorHandler("Phone number is required", 400));
+    return next(new ErrorHandler("Le numéro de téléphone est requis.", 400, 'VALIDATION_ERROR'));
   }
 
   const user = await User.findOne({ phone });
   if (!user) {
-    return next(new ErrorHandler("User not found with this phone number", 404));
+    return next(new ErrorHandler("Aucun utilisateur trouvé avec ce numéro.", 404, 'NOT_FOUND'));
   }
 
   if (user.isVerified) {
-    return next(new ErrorHandler("Phone number is already verified", 400));
+    return next(new ErrorHandler("Ce numéro est déjà vérifié.", 400, 'ALREADY_VERIFIED'));
   }
 
   await generateAndSendOtp(phone, 'REGISTER', user.email);
 
   res.status(200).json({
     success: true,
-    message: "OTP resent successfully",
+    message: "Code renvoyé avec succès.",
   });
 });

@@ -1,4 +1,5 @@
 const Notification = require('../models/Notification');
+const resolveNotificationLink = require('./notificationLink');
 
 /**
  * Create an in-app notification and optionally deliver via SMS / WhatsApp.
@@ -25,7 +26,8 @@ const Notification = require('../models/Notification');
 module.exports = async (userId, type, title, message, data = {}, opts = {}) => {
   const { sms = false, whatsapp = false, smsText, waText } = opts;
 
-  const notification = await Notification.create({ user: userId, type, title, message, data });
+  const link = resolveNotificationLink(type, data);
+  const notification = await Notification.create({ user: userId, type, title, message, data, link });
 
   if (!sms && !whatsapp) return notification;
 
