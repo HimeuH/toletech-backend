@@ -13,6 +13,9 @@ function toStorageUnit(quantity, quantityUnit, capacityUnit) {
   // KG ↔ TONNES
   if (quantityUnit === 'KG' && capacityUnit === 'TONNES') return quantity / 1000;
   if (quantityUnit === 'TONNES' && capacityUnit === 'KG') return quantity * 1000;
+  // LITRES ↔ M3
+  if (quantityUnit === 'LITRES' && capacityUnit === 'M3') return quantity / 1000;
+  if (quantityUnit === 'M3' && capacityUnit === 'LITRES') return quantity * 1000;
   // Cannot compare across incompatible units (e.g. TONNES vs M2) — skip check
   return null;
 }

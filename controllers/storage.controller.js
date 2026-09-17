@@ -272,7 +272,17 @@ exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
 
   // Advanced filters (BE-010)
   if (storageType) query.storageType = storageType;
-  if (productType) query.productType = productType;
+  // B10 — match the structured acceptedProducts list (owner-declared) or,
+  // for storages that predate it, a substring hit on the legacy free-text
+  // productType field (e.g. "Céréales (mil, maïs, sorgho)" for "Maïs").
+  if (productType) {
+    query.$and = (query.$and || []).concat({
+      $or: [
+        { acceptedProducts: productType },
+        { productType: { $regex: productType, $options: 'i' } },
+      ],
+    });
+  }
   if (minPrice || maxPrice) {
     query.costPerKgPerDay = {};
     if (minPrice) query.costPerKgPerDay.$gte = Number(minPrice);

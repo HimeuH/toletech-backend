@@ -24,6 +24,17 @@ const attachBillings = async (reservations) => {
   });
 };
 
+// B17/§5.2 — net-earnings preview for a mission's proposed/agreed transport
+// fee, using the same computeCommission the eventual payout is built from.
+const withTransportCommission = async (reservation) => {
+  const plain = reservation.toObject ? reservation.toObject() : reservation;
+  const fee = plain.transportStatus === 'DEMANDÉ' ? plain.proposedTransportFee : plain.transportFee;
+  if (!fee) return plain;
+  const storageId = typeof plain.storage === 'object' ? plain.storage?._id : plain.storage;
+  const { commissionAmount } = await computeCommission(fee, 'TRANSPORT', { storageId });
+  return { ...plain, transportCommission: commissionAmount, transportNet: fee - commissionAmount };
+};
+
 
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   // BE-024: agent proxy — reserve on behalf of a farmer
@@ -409,7 +420,8 @@ exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  res.status(200).json({ success: true, data: reservation });
+  const data = isTransporter ? await withTransportCommission(reservation) : reservation;
+  res.status(200).json({ success: true, data });
 });
 
 // Delete reservation
@@ -685,7 +697,8 @@ exports.getTransportMissions = catchAsyncErrors(async (req, res, next) => {
     ),
     statusCounts(Reservation, baseQuery, 'transportStatus'),
   ]);
-  res.status(200).json({ success: true, ...result, counts });
+  const data = await Promise.all(result.data.map(withTransportCommission));
+  res.status(200).json({ success: true, ...result, data, counts });
 });
 
 // S8-BE-02: Admin adjust reservation (dates, quantity, notes)

@@ -127,6 +127,14 @@ async function ownerHome(userId) {
       link: `/reservations/${r._id}/detail`,
     })),
     todo,
+    // §5.3 step 1 — one CapacityGauge card per storage on the owner's Accueil.
+    storages: storages.map(s => ({
+      id: s._id,
+      name: s.name,
+      capacity: s.capacity || 0,
+      reservedCapacity: s.reservedCapacity || 0,
+      capacityUnit: s.capacityUnit,
+    })),
   };
 }
 
@@ -232,6 +240,7 @@ exports.getHome = catchAsyncErrors(async (req, res, next) => {
       stats: roleData.stats,
       recent: roleData.recent,
       todo: roleData.todo,
+      storages: roleData.storages,
       badges: { perRole: badges, unread },
     },
   });
