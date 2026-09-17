@@ -8,7 +8,7 @@ const sendSms = require('../utils/sendSms');
 // Create new user (admin / agent) — auto-generates password
 exports.createUser = catchAsyncErrors(async (req, res, next) => {
   const {
-    name, email, phone, role,
+    name, email, phone, roles,
     location, exploitationType, crops,
     companyName, companyRegistration, contactPerson,
     assignedRegion, identificationNumber
@@ -17,7 +17,7 @@ exports.createUser = catchAsyncErrors(async (req, res, next) => {
   const password = crypto.randomBytes(8).toString('hex');
 
   const user = await User.create({
-    name, email, phone, role,
+    name, email, phone, roles,
     location, exploitationType, crops,
     companyName, companyRegistration, contactPerson,
     assignedRegion, identificationNumber,
