@@ -10,6 +10,7 @@ const {
   redirectSuccess,
   redirectError,
   getPaymentHistory,
+  getPaymentStatus,
   getCommissionConfigs,
   createCommissionConfig,
   updateCommissionConfig,
@@ -35,6 +36,9 @@ router.post('/checkout', isAuthenticatedUser, idempotency, initiateCheckout);
 
 // History — user sees own payments, admin sees all
 router.get('/history', isAuthenticatedUser, getPaymentHistory);
+
+// B16 — lightweight poll target for the pending-payment screen.
+router.get('/:id/status', isAuthenticatedUser, getPaymentStatus);
 
 // Commission config — admin only
 router

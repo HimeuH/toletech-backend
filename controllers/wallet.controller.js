@@ -49,11 +49,38 @@ exports.createEscrowHold = async (userId, amount, description, opts = {}) => {
   return { wallet, tx };
 };
 
+// §5.4 step 3 — funds still held in escrow, not yet released to this wallet.
+// Computed from the ledger rather than a running counter: a hold is created
+// for the gross reservation amount, but its matching release is net of
+// commission, so a simple hold-minus-release counter would never zero out.
+// A hold is "no longer pending" once ANY release exists for its billing,
+// regardless of the gross/net difference.
+async function computePendingBalance(walletId) {
+  const [holds, releases] = await Promise.all([
+    Transaction.find({ wallet: walletId, type: 'ESCROW_HOLD' }).select('amount relatedBilling'),
+    Transaction.find({ wallet: walletId, type: 'ESCROW_RELEASE' }).select('relatedBilling'),
+  ]);
+  const releasedBillingIds = new Set(releases.map(t => t.relatedBilling?.toString()).filter(Boolean));
+  return holds
+    .filter(t => !releasedBillingIds.has(t.relatedBilling?.toString()))
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
 // GET /api/v1/wallet/me
 exports.getMyWallet = catchAsyncErrors(async (req, res, next) => {
   const wallet = await exports.getOrCreateWallet(req.user.id);
   await wallet.populate('user', 'name email payoutFrequencyDays');
-  res.status(200).json({ success: true, data: wallet });
+
+  const pendingBalance = await computePendingBalance(wallet._id);
+  const payoutFrequencyDays = wallet.user?.payoutFrequencyDays || 15;
+  const nextPayoutDate = wallet.lastPayoutAt
+    ? new Date(wallet.lastPayoutAt.getTime() + payoutFrequencyDays * 86400000)
+    : null;
+
+  res.status(200).json({
+    success: true,
+    data: { ...wallet.toObject(), pendingBalance, nextPayoutDate },
+  });
 });
 
 // GET /api/v1/wallet/transactions
