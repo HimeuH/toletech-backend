@@ -109,6 +109,7 @@ const settingsRoutes = require('./routes/settings.routes');
 const productTypeRoutes = require('./routes/productType.routes');
 const pushRoutes = require('./routes/push.routes');
 const meRoutes = require('./routes/me.routes');
+const cityRoutes = require('./routes/city.routes');
 
 app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1/auth/register', registerLimiter);
@@ -130,6 +131,7 @@ app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/product-types', productTypeRoutes);
 app.use('/api/v1/push', pushRoutes);
 app.use('/api/v1/me', meRoutes);
+app.use('/api/v1/cities', cityRoutes);
 
 // Alias for Wave dashboard webhook URL (legacy path)
 const { handleWebhook } = require('./controllers/payment.controller');

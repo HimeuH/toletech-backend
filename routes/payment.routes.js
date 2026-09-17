@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth');
+const idempotency = require('../middlewares/idempotency');
 const {
   initiateCheckout,
   handleWebhook,
@@ -27,8 +28,10 @@ router.post('/webhook/:provider', handleWebhook);
 router.get('/redirect/success', redirectSuccess);
 router.get('/redirect/error', redirectError);
 
-// Checkout — authenticated user initiates payment for their billing
-router.post('/checkout', isAuthenticatedUser, initiateCheckout);
+// Checkout — authenticated user initiates payment for their billing.
+// B12 — payments are never queued offline (§5.4), but the same idempotency
+// protection still matters for a double-tapped "Payer" button.
+router.post('/checkout', isAuthenticatedUser, idempotency, initiateCheckout);
 
 // History — user sees own payments, admin sees all
 router.get('/history', isAuthenticatedUser, getPaymentHistory);

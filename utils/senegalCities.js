@@ -43,6 +43,39 @@ const CITIES = {
   'sedhiou':         { lat: 12.7081, lng: -15.5570 },
 };
 
+// B19 (redesign plan §7) — display-cased list for the pickup-location
+// autocomplete, and reverse lookup for "Ma position" (GPS → nearest city).
+const CITY_LIST = Object.entries(CITIES).map(([key, coords]) => ({
+  name: key
+    .split(' ')
+    .map(w => (w.length ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ')
+    .split('-')
+    .map(w => (w.length ? w[0].toUpperCase() + w.slice(1) : w))
+    .join('-'),
+  ...coords,
+}));
+
+function searchCities(q) {
+  if (!q) return CITY_LIST;
+  const needle = normalize(q);
+  return CITY_LIST.filter(c => normalize(c.name).includes(needle));
+}
+
+function nearestCity(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  let best = null;
+  let bestKm = Infinity;
+  for (const city of CITY_LIST) {
+    const km = haversineKm({ lat, lng }, city);
+    if (km < bestKm) {
+      bestKm = km;
+      best = city;
+    }
+  }
+  return best ? { ...best, distanceKm: Math.round(bestKm * 10) / 10 } : null;
+}
+
 function normalize(name) {
   return name
     .toLowerCase()
@@ -123,4 +156,4 @@ function computeEstimate(transportPricing, fromCity, toCity) {
   return { type: 'NONE', price: null, km: null };
 }
 
-module.exports = { estimateDistanceKm, findFixedRoute, computeEstimate };
+module.exports = { estimateDistanceKm, findFixedRoute, computeEstimate, searchCities, nearestCity };
