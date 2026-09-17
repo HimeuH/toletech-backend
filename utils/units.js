@@ -17,16 +17,6 @@ function toStorageUnit(quantity, quantityUnit, capacityUnit) {
   return null;
 }
 
-// Best-effort conversion to kg — TONNES scales, everything else (KG, LITRES,
-// unset) passes through unchanged. LITRES has no meaningful mass conversion;
-// treating it as a 1:1 passthrough matches the pre-existing (undocumented)
-// behavior rather than inventing a density assumption.
-function toKg(quantity, unit) {
-  if (!quantity) return 0;
-  if (unit === 'TONNES') return quantity * 1000;
-  return quantity;
-}
-
 // Haversine distance in km between two [lng, lat] points.
 function distanceKm([lng1, lat1], [lng2, lat2]) {
   const toRad = deg => (deg * Math.PI) / 180;
@@ -38,4 +28,4 @@ function distanceKm([lng1, lat1], [lng2, lat2]) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-module.exports = { toStorageUnit, toKg, distanceKm };
+module.exports = { toStorageUnit, distanceKm };

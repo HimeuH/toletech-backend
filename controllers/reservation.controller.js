@@ -104,6 +104,7 @@ exports.getQuote = catchAsyncErrors(async (req, res, next) => {
   const storageAmount = computeStorageAmount({
     quantity,
     quantityUnit,
+    capacityUnit: storage.capacityUnit,
     costPerKgPerDay: storage.costPerKgPerDay,
     days,
   });

@@ -31,6 +31,7 @@ exports.generateBilling = async (reservationId) => {
   const storageAmount = computeStorageAmount({
     quantity: reservation.quantity,
     quantityUnit: reservation.quantityUnit,
+    capacityUnit: storage.capacityUnit,
     costPerKgPerDay: storage.costPerKgPerDay,
     days,
   });

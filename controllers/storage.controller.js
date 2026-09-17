@@ -26,6 +26,7 @@ function enrichStorage(storage, { quantity, quantityUnit, durationDays, originCo
     estimatedCost = computeStorageAmount({
       quantity,
       quantityUnit,
+      capacityUnit: plain.capacityUnit,
       costPerKgPerDay: plain.costPerKgPerDay,
       days: durationDays,
     });
