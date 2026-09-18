@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { farmerDashboard, ownerDashboard, adminDashboard, adminSeries, transporterDashboard } = require('../controllers/dashboard.controller');
+const { adminDashboard, adminSeries } = require('../controllers/dashboard.controller');
 const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/auth');
 
-router.get('/farmer', isAuthenticatedUser, authorizeRoles('AGRICULTEUR'), farmerDashboard);
-router.get('/owner', isAuthenticatedUser, authorizeRoles('PROPRIETAIRE', 'TRANSFORMATEUR'), ownerDashboard);
+// B20 — /farmer, /owner, /transporter removed: superseded by GET /me/home (Phase 2).
 router.get('/admin', isAuthenticatedUser, authorizeRoles('ADMIN'), adminDashboard);
 router.get('/admin/series', isAuthenticatedUser, authorizeRoles('ADMIN'), adminSeries); // B18
-router.get('/transporter', isAuthenticatedUser, authorizeRoles('TRANSPORTEUR'), transporterDashboard);
 
 module.exports = router;
