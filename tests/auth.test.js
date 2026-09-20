@@ -2,6 +2,7 @@ require('./setup');
 
 const request = require('supertest');
 const app = require('../app');
+const User = require('../models/User');
 
 describe('Auth — register', () => {
   const validUser = {
@@ -9,7 +10,7 @@ describe('Auth — register', () => {
     email: 'farmer@test.com',
     password: 'password123',
     phone: '+221700000001',
-    role: 'AGRICULTEUR'
+    roles: ['AGRICULTEUR']
   };
 
   it('should register a new user and return 201', async () => {
@@ -24,22 +25,23 @@ describe('Auth — register', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('should return 400 for duplicate email', async () => {
+  it('should return 409 for duplicate email', async () => {
     await request(app).post('/api/v1/auth/register').send(validUser);
     const res = await request(app).post('/api/v1/auth/register').send(validUser);
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(409);
   });
 });
 
 describe('Auth — login', () => {
-  // Register without phone so isVerified=true immediately
   beforeEach(async () => {
     await request(app).post('/api/v1/auth/register').send({
       name: 'Login User',
       email: 'loginuser@test.com',
       password: 'password123',
-      role: 'AGRICULTEUR'
+      phone: '+221700000002',
+      roles: ['AGRICULTEUR']
     });
+    await User.updateOne({ email: 'loginuser@test.com' }, { isVerified: true });
   });
 
   it('should login with valid credentials and return token', async () => {

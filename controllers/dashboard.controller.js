@@ -7,11 +7,76 @@ const User = require('../models/User');
 const Review = require('../models/Review');
 const { toStorageUnit } = require('../utils/units');
 
-// B20 — farmerDashboard/ownerDashboard/transporterDashboard removed: the
-// frontend migrated those three roles to GET /me/home (Phase 2) and confirmed
-// no other caller was left (grepped before deleting). adminDashboard/
-// adminSeries stay — ADMIN has no /me/home equivalent, AdminOverview (Phase 5)
-// depends on them directly.
+// Temporary compatibility endpoints for the frontend already deployed on
+// staging. Remove these in a follow-up after the redesigned frontend has been
+// deployed and verified against GET /me/home.
+exports.farmerDashboard = catchAsyncErrors(async (req, res) => {
+  const userId = req.user.id;
+
+  const [activeReservations, pendingPayments, recentHistory] = await Promise.all([
+    Reservation.countDocuments({ user: userId, status: { $in: ['APPROUVÉ', 'CONFIRMÉ'] } }),
+    Billing.find({ user: userId, status: 'PENDING' })
+      .populate('storage', 'name location address')
+      .sort({ createdAt: 1 }),
+    Reservation.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('storage', 'name location address')
+  ]);
+
+  sendResponse(res, 200, { activeReservations, pendingPayments, recentHistory });
+});
+
+exports.ownerDashboard = catchAsyncErrors(async (req, res) => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const storages = await Storage.find({ owner: req.user.id });
+  const storageIds = storages.map(s => s._id);
+
+  const [pendingRequests, monthlyRevenue] = await Promise.all([
+    Reservation.countDocuments({ storage: { $in: storageIds }, status: 'EN_ATTENTE' }),
+    Billing.aggregate([
+      {
+        $match: {
+          storage: { $in: storageIds },
+          status: 'PAID',
+          paidAt: { $gte: startOfMonth }
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ])
+  ]);
+
+  sendResponse(res, 200, {
+    totalStorages: storages.length,
+    pendingRequests,
+    monthlyRevenue: monthlyRevenue[0]?.total || 0
+  });
+});
+
+exports.transporterDashboard = catchAsyncErrors(async (req, res) => {
+  const userId = req.user.id;
+
+  const [assignedTrips, pendingRequests, completedTrips, earningsAgg, user] = await Promise.all([
+    Reservation.countDocuments({ transporter: userId, transportStatus: 'ACCEPTÉ' }),
+    Reservation.countDocuments({ transporter: userId, transportStatus: 'DEMANDÉ' }),
+    Reservation.countDocuments({ transporter: userId, transportStatus: 'LIVRÉ' }),
+    Reservation.aggregate([
+      { $match: { transporter: require('mongoose').Types.ObjectId.createFromHexString(userId.toString()), transportStatus: 'LIVRÉ' } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$transportFee', 0] } } } },
+    ]),
+    User.findById(userId).select('isAvailableForTransport'),
+  ]);
+
+  sendResponse(res, 200, {
+    assignedTrips,
+    pendingRequests,
+    completedTrips,
+    totalEarnings: earningsAgg[0]?.total || 0,
+    isAvailable: user?.isAvailableForTransport ?? false,
+  });
+});
 
 // GET /api/v1/dashboard/admin
 exports.adminDashboard = catchAsyncErrors(async (req, res, next) => {
