@@ -13,11 +13,15 @@ exports.isAuthenticatedUser = catchAsyncErrors(async (req, res, next) => {
     }
 
     if (!token) {
-        return next(new ErrorHandler('Login first to access this resource.', 401))
+        return next(new ErrorHandler('Veuillez vous connecter pour accéder à cette ressource.', 401, 'AUTH_REQUIRED'))
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
     req.user = await User.findById(decoded.id);
+
+    if (!req.user) {
+        return next(new ErrorHandler('Votre session a expiré. Veuillez vous reconnecter.', 401, 'AUTH_EXPIRED'))
+    }
 
     next()
 })
@@ -29,7 +33,7 @@ exports.authorizeRoles = (...roles) => {
         const hasRole = userRoles.some(r => roles.includes(r));
         if (!hasRole) {
             return next(
-                new ErrorHandler(`Role (${userRoles.join(', ')}) is not allowed to access this resource`, 403))
+                new ErrorHandler("Vous n'avez pas la permission d'accéder à cette ressource.", 403, 'FORBIDDEN'))
         }
         next()
     }

@@ -11,8 +11,10 @@ const path = require('path');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const compression = require('compression');
 
 const errorMiddleware = require('./middlewares/errors');
+const { noStore } = require('./middlewares/cacheControl');
 
 const app = express();
 
@@ -65,6 +67,9 @@ app.use(cors({
   origin: ['http://localhost:4200', 'https://mvp.toletech.sn'],
   credentials: true
 }));
+// B3: gzip/brotli-negotiated compression for every JSON response — cuts
+// payload size on 3G before any front-end caching strategy even applies.
+app.use(compression());
 app.use(generalLimiter);
 
 // Payment webhooks need raw body for HMAC signature verification.
@@ -77,6 +82,13 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
+
+// B3: default every API response to `no-store` (most endpoints return
+// per-user data — reservations, wallet, notifications…). Routes serving
+// stable reference data override this with cacheControl.publicLongCache
+// (see routes/productType.routes.js), registered further down the stack
+// so their res.set() runs after this default and wins.
+app.use('/api/v1', noStore);
 
 /* ======================
    Routes
