@@ -410,6 +410,25 @@ exports.getPaymentHistory = catchAsyncErrors(async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/v1/payments/:id/status — B16, §5.4 step 2: a lightweight poll
+// target for the pending-payment screen, instead of re-fetching the full
+// billing record on every tick.
+// ---------------------------------------------------------------------------
+exports.getPaymentStatus = catchAsyncErrors(async (req, res, next) => {
+  const billing = await Billing.findById(req.params.id).select('status user storagePaidAt transporterPaidAt');
+  if (!billing) return next(new ErrorHandler('Facture introuvable', 404));
+
+  if (!req.user.roles.includes('ADMIN') && billing.user?.toString() !== req.user.id) {
+    return next(new ErrorHandler('Forbidden', 403));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: { status: billing.status, paidAt: billing.storagePaidAt || billing.transporterPaidAt || null },
+  });
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/v1/payments/commission-configs — admin only
 // ---------------------------------------------------------------------------
 exports.getCommissionConfigs = catchAsyncErrors(async (req, res) => {

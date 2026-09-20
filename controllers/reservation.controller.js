@@ -1,10 +1,16 @@
 const Reservation = require('../models/Reservation');
 const Storage = require('../models/Storage');
 const Billing = require('../models/Billing');
+const User = require('../models/User');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
 const notify = require('../utils/notify');
+const { toStorageUnit } = require('../utils/units');
+const { computeStorageAmount } = require('../utils/pricing');
+const { computeCommission } = require('../utils/payment');
+const { computeEstimate } = require('../utils/senegalCities');
+const { statusCounts } = require('../utils/statusCounts');
 
 // Helper: attach billing totalAmount to a list of reservation documents
 const attachBillings = async (reservations) => {
@@ -18,22 +24,22 @@ const attachBillings = async (reservations) => {
   });
 };
 
-// Helper: convert quantity to storage capacityUnit for comparison (best-effort)
-const toStorageUnit = (quantity, quantityUnit, capacityUnit) => {
-  if (!quantity || !quantityUnit || !capacityUnit) return null;
-  if (quantityUnit === capacityUnit) return quantity;
-  // KG ↔ TONNES
-  if (quantityUnit === 'KG' && capacityUnit === 'TONNES') return quantity / 1000;
-  if (quantityUnit === 'TONNES' && capacityUnit === 'KG') return quantity * 1000;
-  // Cannot compare across incompatible units (e.g. SACS vs M2) — skip check
-  return null;
+// B17/§5.2 — net-earnings preview for a mission's proposed/agreed transport
+// fee, using the same computeCommission the eventual payout is built from.
+const withTransportCommission = async (reservation) => {
+  const plain = reservation.toObject ? reservation.toObject() : reservation;
+  const fee = plain.transportStatus === 'DEMANDÉ' ? plain.proposedTransportFee : plain.transportFee;
+  if (!fee) return plain;
+  const storageId = typeof plain.storage === 'object' ? plain.storage?._id : plain.storage;
+  const { commissionAmount } = await computeCommission(fee, 'TRANSPORT', { storageId });
+  return { ...plain, transportCommission: commissionAmount, transportNet: fee - commissionAmount };
 };
+
 
 exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   // BE-024: agent proxy — reserve on behalf of a farmer
   let userId = req.user.id;
   if (req.user.roles.includes('AGENT') && req.body.onBehalfOf) {
-    const User = require('../models/User');
     const farmer = await User.findById(req.body.onBehalfOf);
     if (!farmer || !farmer.roles.includes('AGRICULTEUR')) {
       return next(new ErrorHandler('Invalid farmer specified for onBehalfOf', 400));
@@ -86,6 +92,81 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
   res.status(201).json({ success: true, data: reservation });
 });
 
+// POST /api/v1/reservations/quote — B11 (redesign plan §7/§5.1 step 6):
+// price breakdown before submit, using the exact same computeStorageAmount
+// formula createReservation → generateBilling ends up charging, so the
+// number shown before "Envoyer la demande" always matches the eventual
+// invoice. Farmers never see a fee line (commission comes out of the
+// owner/transporter payout, not the farmer's total) — `provider` is included
+// for the front to show on the owner/agent side, not on the farmer wizard.
+exports.getQuote = catchAsyncErrors(async (req, res, next) => {
+  const { storageId, quantity, quantityUnit, from, to, transporterId, fromCity, toCity } = req.body;
+
+  if (!storageId || !quantity || !from || !to) {
+    return next(new ErrorHandler('storageId, quantity, from et to sont requis', 400, 'VALIDATION_ERROR'));
+  }
+
+  const storage = await Storage.findById(storageId).select(
+    'name owner capacity reservedCapacity capacityUnit costPerKgPerDay'
+  );
+  if (!storage) return next(new ErrorHandler('Entrepôt introuvable', 404, 'NOT_FOUND'));
+
+  const days = Math.max(1, Math.ceil((new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24)));
+  const storageAmount = computeStorageAmount({
+    quantity,
+    quantityUnit,
+    capacityUnit: storage.capacityUnit,
+    costPerKgPerDay: storage.costPerKgPerDay,
+    days,
+  });
+
+  const available = Math.max(0, (storage.capacity || 0) - (storage.reservedCapacity || 0));
+  const convertedQty = toStorageUnit(quantity, quantityUnit, storage.capacityUnit);
+  const fits = convertedQty !== null ? convertedQty <= available : null;
+  const reservedAfter = (storage.reservedCapacity || 0) + (convertedQty || 0);
+  const capacityAfter = {
+    reservedCapacity: reservedAfter,
+    availableCapacity: Math.max(0, (storage.capacity || 0) - reservedAfter),
+    percent: storage.capacity ? Math.round((reservedAfter / storage.capacity) * 100) : null,
+  };
+
+  let transport = null;
+  if (transporterId) {
+    const transporter = await User.findOne({ _id: transporterId, roles: 'TRANSPORTEUR' }).select(
+      'name transportPricing'
+    );
+    if (transporter) {
+      const estimate = computeEstimate(transporter.transportPricing, fromCity, toCity);
+      transport = {
+        transporterId,
+        transporterName: transporter.name,
+        estimatedFee: estimate.price,
+        estimateType: estimate.type,
+      };
+    }
+  }
+
+  const total = storageAmount + (transport?.estimatedFee || 0);
+
+  const { commissionAmount } = await computeCommission(storageAmount, 'STORAGE', {
+    partnerId: storage.owner,
+    storageId: storage._id,
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      storage: { id: storage._id, name: storage.name, costPerKgPerDay: storage.costPerKgPerDay, days },
+      transport,
+      total,
+      fits,
+      capacityAfter,
+      // Provider-side preview only — never render this total/fee split for the farmer.
+      provider: { gross: storageAmount, commission: commissionAmount, net: storageAmount - commissionAmount },
+    },
+  });
+});
+
 // Get all reservations (admin) — S8-BE-03: filtres avancés
 exports.getAllReservations = catchAsyncErrors(async (req, res, next) => {
   const { page, limit, status, userId, storageId, disputeStatus, dateFrom, dateTo } = req.query;
@@ -111,33 +192,42 @@ exports.getAllReservations = catchAsyncErrors(async (req, res, next) => {
 
 // Get reservations for current user
 exports.getMyReservations = catchAsyncErrors(async (req, res, next) => {
-  const { page, limit } = req.query;
-  const result = await paginate(
-    Reservation, { user: req.user.id }, page, limit,
-    [
-      { path: 'user', select: 'name email phone' },
-      { path: 'storage', select: 'name location address costPerKgPerDay' }
-    ]
-  );
+  const { page, limit, status } = req.query;
+  const baseQuery = { user: req.user.id };
+  const query = status ? { ...baseQuery, status } : baseQuery;
+
+  const [result, counts] = await Promise.all([
+    paginate(
+      Reservation, query, page, limit,
+      [
+        { path: 'user', select: 'name email phone' },
+        { path: 'storage', select: 'name location address costPerKgPerDay' }
+      ]
+    ),
+    statusCounts(Reservation, baseQuery),
+  ]);
   result.data = await attachBillings(result.data);
-  res.status(200).json({ success: true, ...result });
+  res.status(200).json({ success: true, ...result, counts });
 });
 
 // BE-015: Owner reservation dashboard
 exports.getOwnerReservations = catchAsyncErrors(async (req, res, next) => {
   const storageIds = await Storage.find({ owner: req.user.id }).select('_id');
-  const query = { storage: { $in: storageIds.map(s => s._id) } };
+  const baseQuery = { storage: { $in: storageIds.map(s => s._id) } };
+  if (req.query.storageId) baseQuery.storage = req.query.storageId;
 
-  if (req.query.status) query.status = req.query.status;
-  if (req.query.storageId) query.storage = req.query.storageId;
+  const query = req.query.status ? { ...baseQuery, status: req.query.status } : baseQuery;
 
   const { page, limit } = req.query;
-  const result = await paginate(
-    Reservation, query, page, limit,
-    [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location address costPerKgPerDay' }]
-  );
+  const [result, counts] = await Promise.all([
+    paginate(
+      Reservation, query, page, limit,
+      [{ path: 'user', select: 'name email phone' }, { path: 'storage', select: 'name location address costPerKgPerDay' }]
+    ),
+    statusCounts(Reservation, baseQuery),
+  ]);
   result.data = await attachBillings(result.data);
-  res.status(200).json({ success: true, ...result });
+  res.status(200).json({ success: true, ...result, counts });
 });
 
 exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
@@ -267,7 +357,7 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
 
 // BE-014: Owner approve/reject endpoint
 exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
-  const { action, message } = req.body;
+  const { action, message, reasonCode } = req.body;
 
   if (!['approve', 'reject'].includes(action)) {
     return next(new ErrorHandler('Action must be "approve" or "reject"', 400));
@@ -287,6 +377,7 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
 
   reservation.status = action === 'approve' ? 'APPROUVÉ' : 'REJETÉ';
   reservation.ownerMessage = message || '';
+  if (action === 'reject') reservation.rejectionReasonCode = reasonCode || null;
   reservation.statusHistory.push({
     status: reservation.status,
     changedBy: req.user.id,
@@ -329,7 +420,8 @@ exports.getReservationById = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  res.status(200).json({ success: true, data: reservation });
+  const data = isTransporter ? await withTransportCommission(reservation) : reservation;
+  res.status(200).json({ success: true, data });
 });
 
 // Delete reservation
@@ -385,7 +477,6 @@ exports.assignTransporter = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Un transporteur a déjà accepté cette mission', 400));
   }
 
-  const User = require('../models/User');
   const transporter = await User.findOne({ _id: transporterId, roles: 'TRANSPORTEUR', isAvailableForTransport: true });
   if (!transporter) return next(new ErrorHandler('Transporteur non disponible', 404));
 
@@ -446,7 +537,6 @@ exports.acceptTransport = catchAsyncErrors(async (req, res, next) => {
     await existingBilling.save();
   }
 
-  const User = require('../models/User');
   const transporter = await User.findById(req.user.id).select('name');
 
   const templates = require('../utils/notificationTemplates');
@@ -480,9 +570,8 @@ exports.rejectTransport = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Mission not in DEMANDÉ state', 400));
   }
 
-  const { note } = req.body;
+  const { note, reasonCode } = req.body;
 
-  const User = require('../models/User');
   const transporter = await User.findById(req.user.id).select('name');
 
   // Keep transporter linked so they can see the rejected mission in history,
@@ -492,6 +581,7 @@ exports.rejectTransport = catchAsyncErrors(async (req, res, next) => {
   reservation.proposedTransportFee = 0;
   reservation.transportRejectedAt = new Date();
   reservation.transportRejectionNote = note || '';
+  reservation.transportRejectionReasonCode = reasonCode || null;
   reservation.transportExpiresAt = undefined;
   await reservation.save();
 
@@ -554,6 +644,18 @@ exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
 
   reservation.transportStatus = 'LIVRÉ';
   reservation.deliveredAt = new Date();
+
+  // B17 — optional proof-of-delivery photo (redesign plan §5.2 step 4).
+  const photoFile = req.files?.deliveryPhoto;
+  if (photoFile) {
+    const cloudinary = require('../config/cloudinary');
+    const uploaded = await cloudinary.uploader.upload(photoFile.tempFilePath || photoFile.data, {
+      folder: 'delivery-proofs',
+      resource_type: 'image',
+    });
+    reservation.deliveryPhoto = { public_id: uploaded.public_id, url: uploaded.secure_url };
+  }
+
   await reservation.save();
 
   // S3-BE-07: notify the farmer
@@ -584,15 +686,19 @@ exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
 // GET /api/v1/reservations/transport-missions — transporter sees their missions
 exports.getTransportMissions = catchAsyncErrors(async (req, res, next) => {
   const { status, page, limit } = req.query;
-  const query = { transporter: req.user.id };
   // 'NONE' means no active transport relationship — never a real mission to act on
-  query.transportStatus = status || { $ne: 'NONE' };
+  const baseQuery = { transporter: req.user.id, transportStatus: { $ne: 'NONE' } };
+  const query = status ? { transporter: req.user.id, transportStatus: status } : baseQuery;
 
-  const result = await paginate(
-    Reservation, query, page, limit,
-    [{ path: 'user', select: 'name phone' }, { path: 'storage', select: 'name address location' }]
-  );
-  res.status(200).json({ success: true, ...result });
+  const [result, counts] = await Promise.all([
+    paginate(
+      Reservation, query, page, limit,
+      [{ path: 'user', select: 'name phone' }, { path: 'storage', select: 'name address location' }]
+    ),
+    statusCounts(Reservation, baseQuery, 'transportStatus'),
+  ]);
+  const data = await Promise.all(result.data.map(withTransportCommission));
+  res.status(200).json({ success: true, ...result, data, counts });
 });
 
 // S8-BE-02: Admin adjust reservation (dates, quantity, notes)
@@ -669,7 +775,6 @@ exports.openDispute = catchAsyncErrors(async (req, res, next) => {
   await reservation.save();
 
   // Notify admins — we notify the storage owner if opened by farmer, and vice versa
-  const User = require('../models/User');
   const admins = await User.find({ roles: 'ADMIN' }).select('_id');
   const storageData = await Storage.findById(reservation.storage?._id || reservation.storage).select('name owner');
   const notifTargets = admins.map(a => a._id);

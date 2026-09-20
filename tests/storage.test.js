@@ -2,6 +2,7 @@ require('./setup');
 
 const request = require('supertest');
 const app = require('../app');
+const User = require('../models/User');
 
 let token;
 let storageId;
@@ -10,7 +11,8 @@ const ownerPayload = {
   name: 'Storage Owner',
   email: 'owner@test.com',
   password: 'password123',
-  role: 'PROPRIETAIRE'
+  phone: '+221700000003',
+  roles: ['PROPRIETAIRE']
 };
 
 const storagePayload = {
@@ -24,11 +26,12 @@ const storagePayload = {
 };
 
 beforeEach(async () => {
-  await request(app).post('/api/v1/auth/register').send(ownerPayload);
+  await User.create({ ...ownerPayload, isVerified: true });
   const loginRes = await request(app).post('/api/v1/auth/login').send({
     email: ownerPayload.email,
     password: ownerPayload.password
   });
+  expect(loginRes.statusCode).toBe(200);
   token = loginRes.body.token;
 });
 

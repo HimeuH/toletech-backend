@@ -25,6 +25,7 @@ router.post('/verify-identity', isAuthenticatedUser, authController.verifyIdenti
 router.post('/submit-new-phone', isAuthenticatedUser, authController.submitNewPhone);
 router.post('/verify-new-phone', isAuthenticatedUser, authController.verifyNewPhone);
 router.get('/logout', authController.logout);
+router.post('/refresh', authController.refreshToken); // B8
 
 router.get('/admin/users', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.allUsers);
 router.get('/admin/user/:id', isAuthenticatedUser, authorizeRoles('ADMIN'), authController.getUserDetails);

@@ -5,6 +5,8 @@ const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const paginate = require('../utils/paginate');
 const { computeCommission } = require('../utils/payment');
+const { computeStorageAmount } = require('../utils/pricing');
+const { statusCounts } = require('../utils/statusCounts');
 
 // Internal helper — called by reservation controller on confirmation
 exports.generateBilling = async (reservationId) => {
@@ -23,7 +25,16 @@ exports.generateBilling = async (reservationId) => {
   const diffTime = Math.abs(end - start);
   const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  const storageAmount = days * (storage.costPerKgPerDay || 0);
+  // FIX: was `days * costPerKgPerDay` with no quantity factor at all — every
+  // reservation on a storage was billed identically regardless of how much
+  // was actually stored. See utils/pricing.js for the corrected, shared formula.
+  const storageAmount = computeStorageAmount({
+    quantity: reservation.quantity,
+    quantityUnit: reservation.quantityUnit,
+    capacityUnit: storage.capacityUnit,
+    costPerKgPerDay: storage.costPerKgPerDay,
+    days,
+  });
   const transportAmount = reservation.needsTransport ? (reservation.transportFee || 0) : 0;
   const totalAmount = storageAmount + transportAmount;
 
@@ -66,27 +77,33 @@ exports.getAllBillings = catchAsyncErrors(async (req, res, next) => {
 
 // GET /api/v1/billings/my — farmer or owner
 exports.getMyBillings = catchAsyncErrors(async (req, res, next) => {
-  const { page, limit } = req.query;
-  let query = {};
+  const { page, limit, status } = req.query;
+  let baseQuery = {};
 
   const userRoles = req.user.roles || [];
   if (userRoles.includes('AGRICULTEUR') && !userRoles.includes('ADMIN')) {
-    query.user = req.user.id;
+    baseQuery.user = req.user.id;
   } else if (userRoles.some(r => ['PROPRIETAIRE', 'TRANSFORMATEUR'].includes(r)) && !userRoles.includes('ADMIN')) {
     const storages = await Storage.find({ owner: req.user.id }).select('_id');
-    query.storage = { $in: storages.map(s => s._id) };
+    baseQuery.storage = { $in: storages.map(s => s._id) };
   } else if (userRoles.includes('ADMIN')) {
     // admin can use this endpoint too — no filter
   } else {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  const result = await paginate(Billing, query, page, limit, [
-    { path: 'user', select: 'name email' },
-    { path: 'storage', select: 'name location' },
-    'reservation'
+  // B15 — status filter + per-status counts for segmented tabs with badges.
+  const query = status ? { ...baseQuery, status } : baseQuery;
+
+  const [result, counts] = await Promise.all([
+    paginate(Billing, query, page, limit, [
+      { path: 'user', select: 'name email' },
+      { path: 'storage', select: 'name location' },
+      'reservation'
+    ]),
+    statusCounts(Billing, baseQuery),
   ]);
-  res.status(200).json({ success: true, ...result });
+  res.status(200).json({ success: true, ...result, counts });
 });
 
 // GET /api/v1/billings/storage/:storageId

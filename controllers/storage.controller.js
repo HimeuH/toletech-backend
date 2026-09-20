@@ -3,6 +3,52 @@ const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
 const cloudinary = require('../config/cloudinary');
 const paginate = require('../utils/paginate');
+const { toStorageUnit, distanceKm } = require('../utils/units');
+const { computeStorageAmount } = require('../utils/pricing');
+const { thumbnailUrl } = require('../utils/cloudinaryUrl');
+
+// B10 (redesign plan §7) — enrich a raw Storage doc with the fields the new
+// fit-sorted search list needs: whether it fits the farmer's quantity,
+// the estimated total for their quantity/duration, distance from origin
+// (geo-search only) and a lightweight thumbnail instead of the raw upload.
+function enrichStorage(storage, { quantity, quantityUnit, durationDays, originCoords }) {
+  const plain = storage.toObject ? storage.toObject() : storage;
+  const available = Math.max(0, (plain.capacity || 0) - (plain.reservedCapacity || 0));
+
+  let fits = null;
+  if (quantity) {
+    const converted = toStorageUnit(quantity, quantityUnit, plain.capacityUnit);
+    fits = converted !== null ? converted <= available : null;
+  }
+
+  let estimatedCost = null;
+  if (quantity && durationDays && plain.costPerKgPerDay) {
+    estimatedCost = computeStorageAmount({
+      quantity,
+      quantityUnit,
+      capacityUnit: plain.capacityUnit,
+      costPerKgPerDay: plain.costPerKgPerDay,
+      days: durationDays,
+    });
+  }
+
+  let distKm = null;
+  if (originCoords && plain.gpsCoordinates?.coordinates?.length === 2) {
+    distKm = Math.round(distanceKm(originCoords, plain.gpsCoordinates.coordinates) * 10) / 10;
+  }
+
+  const firstPhoto = plain.photos?.[0];
+  const thumb = firstPhoto?.public_id ? thumbnailUrl(firstPhoto.public_id) : firstPhoto?.url || null;
+
+  return {
+    ...plain,
+    availableCapacity: available,
+    fits,
+    estimatedCost,
+    distanceKm: distKm,
+    thumbnailUrl: thumb,
+  };
+}
 
 // Helper: upload files to Cloudinary and return { public_id, url } objects
 async function uploadPhotos(files) {
@@ -194,6 +240,7 @@ exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
     location, productType, from, to,
     lat, lng, maxDistance,
     storageType, minPrice, maxPrice, facilities, minCapacity,
+    quantity, unit,
     page, limit
   } = req.query;
 
@@ -225,7 +272,17 @@ exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
 
   // Advanced filters (BE-010)
   if (storageType) query.storageType = storageType;
-  if (productType) query.productType = productType;
+  // B10 — match the structured acceptedProducts list (owner-declared) or,
+  // for storages that predate it, a substring hit on the legacy free-text
+  // productType field (e.g. "Céréales (mil, maïs, sorgho)" for "Maïs").
+  if (productType) {
+    query.$and = (query.$and || []).concat({
+      $or: [
+        { acceptedProducts: productType },
+        { productType: { $regex: productType, $options: 'i' } },
+      ],
+    });
+  }
   if (minPrice || maxPrice) {
     query.costPerKgPerDay = {};
     if (minPrice) query.costPerKgPerDay.$gte = Number(minPrice);
@@ -238,16 +295,33 @@ exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
     query.capacity = { $gte: Number(minCapacity) };
   }
 
+  // B10 — enrichment context shared by both branches below.
+  const enrichCtx = {
+    quantity: quantity ? Number(quantity) : null,
+    quantityUnit: unit || null,
+    durationDays: from && to ? Math.max(1, Math.ceil((new Date(to) - new Date(from)) / 86400000)) : null,
+    originCoords: lat && lng ? [parseFloat(lng), parseFloat(lat)] : null,
+  };
+
   // When using $near, sort is applied by MongoDB automatically — skip paginate's sort
   const useGeo = !!(lat && lng);
   if (useGeo) {
     // $near doesn't work with .countDocuments+skip; do a plain find
-    const data = await Storage.find(query)
+    const raw = await Storage.find(query)
       .populate('owner', 'name email')
       .limit(parseInt(limit, 10) || 20);
+    const data = raw
+      .map(s => enrichStorage(s, enrichCtx))
+      // Fit-sorted (redesign plan §5.1 step 3): storages that fit the
+      // requested quantity first, then by distance (already the $near order
+      // when no quantity was given, so this is a no-op in that case).
+      .sort((a, b) => {
+        if (a.fits !== b.fits) return a.fits ? -1 : 1;
+        return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
+      });
     return res.status(200).json({ success: true, data, count: data.length });
   }
 
   const result = await paginate(Storage, query, page, limit, 'owner', { createdAt: -1 });
-  res.status(200).json({ success: true, ...result });
+  res.status(200).json({ success: true, ...result, data: result.data.map(s => enrichStorage(s, enrichCtx)) });
 });

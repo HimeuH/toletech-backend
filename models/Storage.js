@@ -27,7 +27,7 @@ const storageSchema = new mongoose.Schema(
       country: { type: String, default: 'Sénégal' }
     },
     gpsCoordinates: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
+      type: { type: String, enum: ['Point'] },
       coordinates: { type: [Number] } // [longitude, latitude]
     },
     storageType: {

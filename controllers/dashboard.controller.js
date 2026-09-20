@@ -5,9 +5,12 @@ const Billing = require('../models/Billing');
 const Storage = require('../models/Storage');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const { toStorageUnit } = require('../utils/units');
 
-// GET /api/v1/dashboard/farmer
-exports.farmerDashboard = catchAsyncErrors(async (req, res, next) => {
+// Temporary compatibility endpoints for the frontend already deployed on
+// staging. Remove these in a follow-up after the redesigned frontend has been
+// deployed and verified against GET /me/home.
+exports.farmerDashboard = catchAsyncErrors(async (req, res) => {
   const userId = req.user.id;
 
   const [activeReservations, pendingPayments, recentHistory] = await Promise.all([
@@ -24,8 +27,7 @@ exports.farmerDashboard = catchAsyncErrors(async (req, res, next) => {
   sendResponse(res, 200, { activeReservations, pendingPayments, recentHistory });
 });
 
-// GET /api/v1/dashboard/owner
-exports.ownerDashboard = catchAsyncErrors(async (req, res, next) => {
+exports.ownerDashboard = catchAsyncErrors(async (req, res) => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -53,8 +55,7 @@ exports.ownerDashboard = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-// GET /api/v1/dashboard/transporter
-exports.transporterDashboard = catchAsyncErrors(async (req, res, next) => {
+exports.transporterDashboard = catchAsyncErrors(async (req, res) => {
   const userId = req.user.id;
 
   const [assignedTrips, pendingRequests, completedTrips, earningsAgg, user] = await Promise.all([
@@ -103,6 +104,8 @@ exports.adminDashboard = catchAsyncErrors(async (req, res, next) => {
     cancelledReservations,
     pendingOlderThan48h,
     reservationsByStatus,
+    reservationsByProduct,
+    openDisputes,
     volumeAgg,
     revenueTotal,
     revenueThisMonth,
@@ -136,6 +139,14 @@ exports.adminDashboard = catchAsyncErrors(async (req, res, next) => {
       { $group: { _id: '$status', count: { $sum: 1 } } },
       { $project: { status: '$_id', count: 1, _id: 0 } },
     ]),
+    Reservation.aggregate([
+      { $match: { product: { $exists: true, $ne: null, $ne: '' } } },
+      { $group: { _id: '$product', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+      { $project: { product: '$_id', count: 1, _id: 0 } },
+    ]),
+    Reservation.countDocuments({ 'dispute.status': 'OPEN' }),
     Reservation.aggregate([
       { $match: { status: 'CONFIRMÉ', createdAt: { $gte: startOfMonth } } },
       { $group: { _id: null, total: { $sum: { $ifNull: ['$quantity', 0] } } } },
@@ -187,6 +198,8 @@ exports.adminDashboard = catchAsyncErrors(async (req, res, next) => {
       conversionRate,
       cancellationRate,
       byStatus: reservationsByStatus,
+      byProduct: reservationsByProduct,
+      openDisputes,
       volumeThisMonth: volumeAgg[0]?.total || 0,
     },
     revenue: {
@@ -200,4 +213,66 @@ exports.adminDashboard = catchAsyncErrors(async (req, res, next) => {
       reviewCount: ratingAgg[0]?.count ?? 0,
     },
   });
+});
+
+// B18 — GET /api/v1/dashboard/admin/series?metric=revenue|occupation&range=<days>
+// Powers the admin overview's "over time" charts (redesign plan §5.6/§8.2).
+exports.adminSeries = catchAsyncErrors(async (req, res, next) => {
+  const metric = req.query.metric === 'occupation' ? 'occupation' : 'revenue';
+  const range = Math.min(90, Math.max(7, parseInt(req.query.range, 10) || 30));
+
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  const start = new Date(end);
+  start.setDate(start.getDate() - (range - 1));
+
+  const days = [];
+  for (let i = 0; i < range; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  const dayKey = (d) => d.toISOString().slice(0, 10);
+
+  if (metric === 'revenue') {
+    const rows = await Billing.aggregate([
+      { $match: { status: 'PAID', paidAt: { $gte: start, $lte: end } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$paidAt' } }, total: { $sum: '$totalAmount' } } },
+    ]);
+    const byDay = new Map(rows.map(r => [r._id, r.total]));
+    const series = days.map(d => ({ date: dayKey(d), value: byDay.get(dayKey(d)) || 0 }));
+    return sendResponse(res, 200, { metric, range, series });
+  }
+
+  // occupation: Storage.reservedCapacity is only a live running total (no
+  // history kept), so past occupancy is rebuilt here from the reservations
+  // that were active on each day instead of a stored daily snapshot.
+  const [storages, reservations] = await Promise.all([
+    Storage.find({ capacity: { $gt: 0 } }).select('capacity capacityUnit'),
+    Reservation.find({
+      status: { $in: ['APPROUVÉ', 'CONFIRMÉ'] },
+      reservedFrom: { $lte: end },
+      reservedTo: { $gte: start },
+    }).select('storage quantity quantityUnit reservedFrom reservedTo'),
+  ]);
+
+  const storageById = new Map(storages.map(s => [s._id.toString(), s]));
+
+  const series = days.map(day => {
+    const usedByStorage = new Map();
+    for (const r of reservations) {
+      if (!r.storage || r.reservedFrom > day || r.reservedTo < day) continue;
+      const storage = storageById.get(r.storage.toString());
+      if (!storage) continue;
+      const converted = toStorageUnit(r.quantity, r.quantityUnit, storage.capacityUnit);
+      if (converted === null) continue;
+      const key = storage._id.toString();
+      usedByStorage.set(key, (usedByStorage.get(key) || 0) + converted);
+    }
+    const ratios = storages.map(s => Math.min(1, (usedByStorage.get(s._id.toString()) || 0) / s.capacity));
+    const avg = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+    return { date: dayKey(day), value: Math.round(avg * 1000) / 10 };
+  });
+
+  sendResponse(res, 200, { metric, range, series });
 });
