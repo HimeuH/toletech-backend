@@ -24,6 +24,36 @@ const attachBillings = async (reservations) => {
   });
 };
 
+// Send a transport request to a transporter: DEMANDÉ + 48h expiry + notify.
+// Shared by assignTransporter (farmer picks after confirmation) and the
+// CONFIRMÉ transition (transporter pre-selected in the booking wizard).
+const requestTransport = async (reservation, { transporterId, proposedTransportFee, pickupLocation, farmerName }) => {
+  reservation.transporter = transporterId;
+  reservation.needsTransport = true;
+  reservation.proposedTransportFee = proposedTransportFee;
+  reservation.transportStatus = 'DEMANDÉ';
+  reservation.transportRequestedAt = new Date();
+  reservation.transportExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h window
+  if (pickupLocation) reservation.pickupLocation = pickupLocation;
+  await reservation.save();
+
+  const templates = require('../utils/notificationTemplates');
+  const tpl = templates.TRANSPORT_ASSIGNED({
+    farmerName: farmerName || 'Un agriculteur',
+    storageName: reservation.storage?.toString() || 'entrepôt',
+    proposedFee: proposedTransportFee
+  });
+
+  await notify(
+    transporterId,
+    'TRANSPORT_ASSIGNED',
+    tpl.title,
+    tpl.inApp,
+    { reservationId: reservation._id },
+    { sms: true, smsText: tpl.sms, waText: tpl.whatsapp }
+  ).catch(err => console.error('Notification error:', err.message));
+};
+
 // B17/§5.2 — net-earnings preview for a mission's proposed/agreed transport
 // fee, using the same computeCommission the eventual payout is built from.
 const withTransportCommission = async (reservation) => {
@@ -70,8 +100,29 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
+  // Whitelist client fields — transportStatus/transportFee/status etc. are
+  // server-managed and must never be set from the request body.
+  const { storage: storageId, reservedFrom, reservedTo, product, notes, quantity, quantityUnit } = req.body;
+  const data = { storage: storageId, reservedFrom, reservedTo, product, notes, quantity, quantityUnit };
+
+  // Transporter picked in the booking wizard: only stored here. The request
+  // is sent to the transporter once the reservation is CONFIRMÉ (see
+  // requestTransport in updateReservation), with the wizard's estimate as the
+  // proposed fee — transportFee stays 0 until the transporter accepts.
+  if (req.body.needsTransport) {
+    data.needsTransport = true;
+    if (req.body.pickupLocation) data.pickupLocation = req.body.pickupLocation;
+    if (req.body.transporter) {
+      const transporter = await User.exists({ _id: req.body.transporter, roles: 'TRANSPORTEUR' });
+      if (!transporter) return next(new ErrorHandler('Transporteur introuvable', 400));
+      data.transporter = req.body.transporter;
+      const fee = Number(req.body.transportFee);
+      if (fee > 0) data.proposedTransportFee = fee;
+    }
+  }
+
   const reservation = await Reservation.create({
-    ...req.body,
+    ...data,
     user: userId,
     createdBy: req.user.id,
     statusHistory: [{ status: 'EN_ATTENTE', changedBy: req.user.id }]
@@ -350,6 +401,30 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
       const { generateBilling } = require('./billing.controller');
       await generateBilling(reservation._id);
     }
+
+    // Transporter pre-selected in the booking wizard → send the request now.
+    // Without an estimated fee (or if the transporter went unavailable) the
+    // farmer proposes one from the reservation page (assignTransporter).
+    if (
+      reservation.needsTransport &&
+      reservation.transporter &&
+      reservation.transportStatus === 'NONE' &&
+      reservation.proposedTransportFee > 0
+    ) {
+      const transporterAvailable = await User.exists({
+        _id: reservation.transporter,
+        roles: 'TRANSPORTEUR',
+        isAvailableForTransport: true
+      });
+      if (transporterAvailable) {
+        const farmer = await User.findById(reservation.user).select('name');
+        await requestTransport(reservation, {
+          transporterId: reservation.transporter,
+          proposedTransportFee: reservation.proposedTransportFee,
+          farmerName: farmer?.name,
+        });
+      }
+    }
   }
 
   res.status(200).json({ success: true, message: 'Reservation updated successfully', data: reservation });
@@ -480,30 +555,12 @@ exports.assignTransporter = catchAsyncErrors(async (req, res, next) => {
   const transporter = await User.findOne({ _id: transporterId, roles: 'TRANSPORTEUR', isAvailableForTransport: true });
   if (!transporter) return next(new ErrorHandler('Transporteur non disponible', 404));
 
-  reservation.transporter = transporterId;
-  reservation.needsTransport = true;
-  reservation.proposedTransportFee = proposedTransportFee;
-  reservation.transportStatus = 'DEMANDÉ';
-  reservation.transportRequestedAt = new Date();
-  reservation.transportExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h window
-  if (pickupLocation) reservation.pickupLocation = pickupLocation;
-  await reservation.save();
-
-  const templates = require('../utils/notificationTemplates');
-  const tpl = templates.TRANSPORT_ASSIGNED({
-    farmerName: req.user.name || 'Un agriculteur',
-    storageName: reservation.storage?.toString() || 'entrepôt',
-    proposedFee: proposedTransportFee
-  });
-
-  await notify(
+  await requestTransport(reservation, {
     transporterId,
-    'TRANSPORT_ASSIGNED',
-    tpl.title,
-    tpl.inApp,
-    { reservationId: reservation._id },
-    { sms: true, smsText: tpl.sms, waText: tpl.whatsapp }
-  ).catch(err => console.error('Notification error:', err.message));
+    proposedTransportFee,
+    pickupLocation,
+    farmerName: req.user.name,
+  });
 
   res.status(200).json({ success: true, data: reservation });
 });
