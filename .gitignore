@@ -71,3 +71,6 @@ config/config.env
 # PI-SPI mTLS certificates — never commit these
 /certs/
 deploy.zip
+
+# Prod staff accounts (real names/phones) — see scripts/prod-staff.example.json
+scripts/prod-staff.json

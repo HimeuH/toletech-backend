@@ -24,6 +24,7 @@ const DEFAULT_PRODUCTS = [
   { name: 'Engrais',          category: 'Intrants' },
   { name: 'Semences',         category: 'Intrants' },
 ];
+exports.DEFAULT_PRODUCTS = DEFAULT_PRODUCTS; // reused by scripts/seed-prod.js
 
 // GET /api/v1/product-types — public, active only
 exports.list = catchAsyncErrors(async (req, res) => {

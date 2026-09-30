@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Prénom Nom",
+    "email": "admin@toletech.sn",
+    "phone": "+221770000000",
+    "roles": ["ADMIN"],
+    "location": "Dakar"
+  },
+  {
+    "name": "Prénom Nom",
+    "email": "agent.diamniadio@toletech.sn",
+    "phone": "+221770000001",
+    "roles": ["AGENT"],
+    "location": "Diamniadio",
+    "assignedRegion": "Dakar",
+    "identificationNumber": "AGT-DK-001"
+  }
+]
