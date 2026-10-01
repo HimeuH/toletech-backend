@@ -11,6 +11,7 @@ const { computeStorageAmount } = require('../utils/pricing');
 const { computeCommission } = require('../utils/payment');
 const { computeEstimate } = require('../utils/senegalCities');
 const { statusCounts } = require('../utils/statusCounts');
+const { checkCapacityForConfirm, requestTransport, applyConfirmationEffects } = require('../utils/reservationLifecycle');
 
 // Helper: attach billing totalAmount to a list of reservation documents
 const attachBillings = async (reservations) => {
@@ -22,36 +23,6 @@ const attachBillings = async (reservations) => {
     const plain = r.toObject ? r.toObject() : r;
     return b ? { ...plain, billing: { totalAmount: b.totalAmount, storageAmount: b.storageAmount, transportAmount: b.transportAmount, status: b.status } } : plain;
   });
-};
-
-// Send a transport request to a transporter: DEMANDÉ + 48h expiry + notify.
-// Shared by assignTransporter (farmer picks after confirmation) and the
-// CONFIRMÉ transition (transporter pre-selected in the booking wizard).
-const requestTransport = async (reservation, { transporterId, proposedTransportFee, pickupLocation, farmerName }) => {
-  reservation.transporter = transporterId;
-  reservation.needsTransport = true;
-  reservation.proposedTransportFee = proposedTransportFee;
-  reservation.transportStatus = 'DEMANDÉ';
-  reservation.transportRequestedAt = new Date();
-  reservation.transportExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48h window
-  if (pickupLocation) reservation.pickupLocation = pickupLocation;
-  await reservation.save();
-
-  const templates = require('../utils/notificationTemplates');
-  const tpl = templates.TRANSPORT_ASSIGNED({
-    farmerName: farmerName || 'Un agriculteur',
-    storageName: reservation.storage?.toString() || 'entrepôt',
-    proposedFee: proposedTransportFee
-  });
-
-  await notify(
-    transporterId,
-    'TRANSPORT_ASSIGNED',
-    tpl.title,
-    tpl.inApp,
-    { reservationId: reservation._id },
-    { sms: true, smsText: tpl.sms, waText: tpl.whatsapp }
-  ).catch(err => console.error('Notification error:', err.message));
 };
 
 // B17/§5.2 — net-earnings preview for a mission's proposed/agreed transport
@@ -107,7 +78,7 @@ exports.createReservation = catchAsyncErrors(async (req, res, next) => {
 
   // Transporter picked in the booking wizard: only stored here. The request
   // is sent to the transporter once the reservation is CONFIRMÉ (see
-  // requestTransport in updateReservation), with the wizard's estimate as the
+  // applyConfirmationEffects in utils/reservationLifecycle.js), with the wizard's estimate as the
   // proposed fee — transportFee stays 0 until the transporter accepts.
   if (req.body.needsTransport) {
     data.needsTransport = true;
@@ -305,8 +276,8 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
     } else {
       // Admin: enforce valid transitions (CONFIRMÉ → ANNULÉ allowed to free capacity)
       const validTransitions = {
-        EN_ATTENTE: ['APPROUVÉ', 'REJETÉ', 'ANNULÉ'],
-        APPROUVÉ: ['CONFIRMÉ', 'ANNULÉ'],
+        EN_ATTENTE: ['CONFIRMÉ', 'REJETÉ', 'ANNULÉ'],
+        APPROUVÉ: ['CONFIRMÉ', 'ANNULÉ'], // legacy status — see utils/reservationLifecycle.js
         CONFIRMÉ: ['ANNULÉ'],
         REJETÉ: [],
         ANNULÉ: []
@@ -340,6 +311,11 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
     if (overlapping) return next(new ErrorHandler('Storage already reserved in this period', 400));
   }
 
+  if (updates.status === 'CONFIRMÉ' && reservation.status !== 'CONFIRMÉ') {
+    const capacityError = await checkCapacityForConfirm(reservation);
+    if (capacityError) return next(new ErrorHandler(capacityError, 400));
+  }
+
   // Apply editable fields
   const editableFields = ['reservedFrom', 'reservedTo', 'notes', 'quantity', 'quantityUnit', 'product'];
   editableFields.forEach(field => {
@@ -369,10 +345,8 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
       ? (toStorageUnit(reservation.quantity, reservation.quantityUnit, storage.capacityUnit) ?? reservation.quantity)
       : reservation.quantity;
 
-    if (updates.status === 'CONFIRMÉ') {
-      // Lock capacity when reservation is confirmed
-      await Storage.findByIdAndUpdate(reservation.storage, { $inc: { reservedCapacity: converted } });
-    } else if (updates.status === 'ANNULÉ' && previousStatus === 'CONFIRMÉ') {
+    // Capacity lock on CONFIRMÉ is done by applyConfirmationEffects below.
+    if (updates.status === 'ANNULÉ' && previousStatus === 'CONFIRMÉ') {
       // Free capacity when a confirmed reservation is cancelled (admin only path)
       await Storage.findByIdAndUpdate(reservation.storage, [
         { $set: { reservedCapacity: { $max: [0, { $subtract: ['$reservedCapacity', converted] }] } } }
@@ -394,37 +368,9 @@ exports.updateReservation = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  // BE-017: Auto-billing on confirmation
-  if (updates.status === 'CONFIRMÉ') {
-    const existingBilling = await Billing.findOne({ reservation: reservation._id });
-    if (!existingBilling) {
-      const { generateBilling } = require('./billing.controller');
-      await generateBilling(reservation._id);
-    }
-
-    // Transporter pre-selected in the booking wizard → send the request now.
-    // Without an estimated fee (or if the transporter went unavailable) the
-    // farmer proposes one from the reservation page (assignTransporter).
-    if (
-      reservation.needsTransport &&
-      reservation.transporter &&
-      reservation.transportStatus === 'NONE' &&
-      reservation.proposedTransportFee > 0
-    ) {
-      const transporterAvailable = await User.exists({
-        _id: reservation.transporter,
-        roles: 'TRANSPORTEUR',
-        isAvailableForTransport: true
-      });
-      if (transporterAvailable) {
-        const farmer = await User.findById(reservation.user).select('name');
-        await requestTransport(reservation, {
-          transporterId: reservation.transporter,
-          proposedTransportFee: reservation.proposedTransportFee,
-          farmerName: farmer?.name,
-        });
-      }
-    }
+  // BE-017: capacity lock + auto-billing + pre-selected transport request
+  if (updates.status === 'CONFIRMÉ' && previousStatus !== 'CONFIRMÉ') {
+    await applyConfirmationEffects(reservation);
   }
 
   res.status(200).json({ success: true, message: 'Reservation updated successfully', data: reservation });
@@ -450,7 +396,13 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  reservation.status = action === 'approve' ? 'APPROUVÉ' : 'REJETÉ';
+  // Owner approval confirms directly (no separate admin confirmation step).
+  if (action === 'approve') {
+    const capacityError = await checkCapacityForConfirm(reservation);
+    if (capacityError) return next(new ErrorHandler(capacityError, 400));
+  }
+
+  reservation.status = action === 'approve' ? 'CONFIRMÉ' : 'REJETÉ';
   reservation.ownerMessage = message || '';
   if (action === 'reject') reservation.rejectionReasonCode = reasonCode || null;
   reservation.statusHistory.push({
@@ -461,10 +413,15 @@ exports.respondToReservation = catchAsyncErrors(async (req, res, next) => {
 
   await reservation.save();
 
-  // BE-020: notify farmer of approval/rejection (with SMS for critical events — BE-021)
-  const notifType = reservation.status === 'APPROUVÉ' ? 'RESERVATION_APPROVED' : 'RESERVATION_REJECTED';
-  const notifTitle = reservation.status === 'APPROUVÉ' ? 'Réservation approuvée' : 'Réservation rejetée';
-  const notifMessage = message || `Votre réservation a été ${reservation.status.toLowerCase()}`;
+  if (reservation.status === 'CONFIRMÉ') await applyConfirmationEffects(reservation);
+
+  // BE-020: notify farmer of confirmation/rejection (with SMS for critical events — BE-021)
+  const confirmed = reservation.status === 'CONFIRMÉ';
+  const notifType = confirmed ? 'RESERVATION_CONFIRMED' : 'RESERVATION_REJECTED';
+  const notifTitle = confirmed ? 'Réservation confirmée' : 'Réservation rejetée';
+  const notifMessage = message || (confirmed
+    ? `Votre réservation pour ${reservation.storage?.name || 'l\'entrepôt'} est confirmée`
+    : 'Votre réservation a été rejetée');
   await notify(
     reservation.user,
     notifType,
@@ -705,12 +662,10 @@ exports.confirmDelivery = catchAsyncErrors(async (req, res, next) => {
   // B17 — optional proof-of-delivery photo (redesign plan §5.2 step 4).
   const photoFile = req.files?.deliveryPhoto;
   if (photoFile) {
-    const cloudinary = require('../config/cloudinary');
-    const uploaded = await cloudinary.uploader.upload(photoFile.tempFilePath || photoFile.data, {
-      folder: 'delivery-proofs',
-      resource_type: 'image',
-    });
-    reservation.deliveryPhoto = { public_id: uploaded.public_id, url: uploaded.secure_url };
+    const { validateImages, uploadImage } = require('../utils/imageUpload');
+    const invalid = validateImages([photoFile]);
+    if (invalid) return next(invalid);
+    reservation.deliveryPhoto = await uploadImage(photoFile, { folder: 'delivery-proofs' });
   }
 
   await reservation.save();

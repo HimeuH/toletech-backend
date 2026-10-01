@@ -53,6 +53,9 @@ jobs:
             WAVE_WEBHOOK_SECRET=${{ secrets.WAVE_WEBHOOK_SECRET }}
             VAPID_PUBLIC_KEY=${{ secrets.VAPID_PUBLIC_KEY }}
             VAPID_PRIVATE_KEY=${{ secrets.VAPID_PRIVATE_KEY }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
             VAPID_SUBJECT=${{ vars.VAPID_SUBJECT || 'mailto:contact@toletech.sn' }}
             NOTIFY_SMS_FALLBACK_MIN=${{ vars.NOTIFY_SMS_FALLBACK_MIN || '15' }}
             DEFAULT_PAYMENT_PROVIDER=WAVE

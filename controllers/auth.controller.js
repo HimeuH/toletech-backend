@@ -867,3 +867,33 @@ exports.resendOtp = catchAsyncErrors(async (req, res, next) => {
     message: "Code renvoyé avec succès.",
   });
 });
+
+// Upload / replace profile photo   =>   PUT /api/v1/auth/me/avatar (multipart, field "avatar")
+exports.updateAvatar = catchAsyncErrors(async (req, res, next) => {
+  const { validateImages, uploadImage, destroyImage } = require('../utils/imageUpload');
+  const file = req.files?.avatar;
+  if (!file || Array.isArray(file)) {
+    return next(new ErrorHandler('Une seule image est requise (champ "avatar").', 400));
+  }
+  const invalid = validateImages([file]);
+  if (invalid) return next(invalid);
+
+  const user = await User.findById(req.user.id);
+  const previousId = user.avatar?.public_id;
+  user.avatar = await uploadImage(file, { folder: 'avatars', maxSize: 512 });
+  await user.save({ validateBeforeSave: false });
+  await destroyImage(previousId);
+
+  res.status(200).json({ success: true, user });
+});
+
+// Remove profile photo   =>   DELETE /api/v1/auth/me/avatar
+exports.deleteAvatar = catchAsyncErrors(async (req, res, next) => {
+  const { destroyImage } = require('../utils/imageUpload');
+  const user = await User.findById(req.user.id);
+  await destroyImage(user.avatar?.public_id);
+  user.avatar = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({ success: true, user });
+});

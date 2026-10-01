@@ -17,6 +17,8 @@ router.get('/me', isAuthenticatedUser, authController.getUserProfile);
 router.put('/password/update', isAuthenticatedUser, authController.updatePassword);
 router.put('/me/update', isAuthenticatedUser, authController.updateProfile);
 router.put('/me/notif-prefs', isAuthenticatedUser, authController.updateNotifPrefs);
+router.put('/me/avatar', isAuthenticatedUser, authController.updateAvatar);
+router.delete('/me/avatar', isAuthenticatedUser, authController.deleteAvatar);
 router.post('/verify-phone-change', isAuthenticatedUser, authController.verifyPhoneChange);
 
 // Sprint 5 — Secured phone change (3-step flow)
