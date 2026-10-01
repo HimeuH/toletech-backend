@@ -145,7 +145,11 @@ exports.updateStorage = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler('Forbidden', 403));
   }
 
-  // Photo upload — append to existing photos, enforce 10-photo limit
+  // Express 5 leaves req.body undefined for a multipart request carrying only
+  // a file (edit page's photo upload) — never write onto it directly.
+  const updates = { ...(req.body || {}) };
+
+  // Photo upload — append to existing photos, enforce 6-photo limit
   if (req.files && req.files.photos) {
     const files = req.files.photos;
     const fileList = Array.isArray(files) ? files : [files];
@@ -156,10 +160,10 @@ exports.updateStorage = catchAsyncErrors(async (req, res, next) => {
     const invalid = validateImages(fileList);
     if (invalid) return next(invalid);
     const newPhotos = await uploadPhotos(fileList);
-    req.body.photos = [...(storage.photos || []), ...newPhotos];
+    updates.photos = [...(storage.photos || []), ...newPhotos];
   }
 
-  storage = await Storage.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  storage = await Storage.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
   res.status(200).json({ success: true, data: storage });
 });
 
