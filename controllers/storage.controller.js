@@ -1,11 +1,11 @@
 const Storage = require('../models/Storage');
 const catchAsyncErrors = require('../middlewares/catchAsyncErrors');
 const ErrorHandler = require('../utils/errorHandler');
-const cloudinary = require('../config/cloudinary');
 const paginate = require('../utils/paginate');
 const { toStorageUnit, distanceKm } = require('../utils/units');
 const { computeStorageAmount } = require('../utils/pricing');
 const { thumbnailUrl } = require('../utils/cloudinaryUrl');
+const { validateImages, uploadImage, destroyImage } = require('../utils/imageUpload');
 
 // B10 (redesign plan §7) — enrich a raw Storage doc with the fields the new
 // fit-sorted search list needs: whether it fits the farmer's quantity,
@@ -52,14 +52,9 @@ function enrichStorage(storage, { quantity, quantityUnit, durationDays, originCo
 
 // Helper: upload files to Cloudinary and return { public_id, url } objects
 async function uploadPhotos(files) {
-  const uploads = Array.isArray(files) ? files : [files];
   const results = [];
-  for (const file of uploads) {
-    const result = await cloudinary.uploader.upload(file.tempFilePath || file.data, {
-      folder: 'storages',
-      resource_type: 'image'
-    });
-    results.push({ public_id: result.public_id, url: result.secure_url });
+  for (const file of files) {
+    results.push(await uploadImage(file, { folder: 'storages' }));
   }
   return results;
 }
@@ -67,9 +62,7 @@ async function uploadPhotos(files) {
 // Helper: delete photos from Cloudinary
 async function destroyPhotos(photos) {
   for (const photo of photos) {
-    if (photo.public_id) {
-      await cloudinary.uploader.destroy(photo.public_id).catch(() => {});
-    }
+    await destroyImage(photo.public_id);
   }
 }
 
@@ -95,6 +88,8 @@ exports.createStorage = catchAsyncErrors(async (req, res, next) => {
     if (fileList.length > 6) {
       return next(new ErrorHandler('Maximum 6 photos allowed', 400));
     }
+    const invalid = validateImages(fileList);
+    if (invalid) return next(invalid);
     storageData.photos = await uploadPhotos(fileList);
   }
 
@@ -158,6 +153,8 @@ exports.updateStorage = catchAsyncErrors(async (req, res, next) => {
     if (existingCount + fileList.length > 6) {
       return next(new ErrorHandler(`Maximum 6 photos allowed. Storage already has ${existingCount}.`, 400));
     }
+    const invalid = validateImages(fileList);
+    if (invalid) return next(invalid);
     const newPhotos = await uploadPhotos(fileList);
     req.body.photos = [...(storage.photos || []), ...newPhotos];
   }
@@ -196,7 +193,7 @@ exports.deleteStoragePhoto = catchAsyncErrors(async (req, res, next) => {
   const photo = storage.photos.find(p => p.public_id === publicId);
   if (!photo) return next(new ErrorHandler('Photo not found', 404));
 
-  await cloudinary.uploader.destroy(publicId).catch(() => {});
+  await destroyImage(publicId);
   storage.photos = storage.photos.filter(p => p.public_id !== publicId);
   await storage.save();
 
@@ -243,11 +240,15 @@ exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
     quantity, unit,
     page, limit
   } = req.query;
+  // sortByDistance=true: lat/lng only rank results (nearest first, storages
+  // without GPS last) instead of filtering by radius — used by the booking
+  // wizard so storages without coordinates or farther away still show.
+  const sortByDistance = req.query.sortByDistance === 'true';
 
   const query = { isAvailable: true };
 
   // Geo-search (BE-009): takes priority over text location
-  if (lat && lng) {
+  if (lat && lng && !sortByDistance) {
     const distanceMeters = (parseFloat(maxDistance) || 50) * 1000;
     query.gpsCoordinates = {
       $near: {
@@ -304,6 +305,19 @@ exports.searchStorages = catchAsyncErrors(async (req, res, next) => {
   };
 
   // When using $near, sort is applied by MongoDB automatically — skip paginate's sort
+  if (sortByDistance && lat && lng) {
+    const raw = await Storage.find(query)
+      .populate('owner', 'name email')
+      .limit(parseInt(limit, 10) || 100);
+    const data = raw
+      .map(s => enrichStorage(s, enrichCtx))
+      .sort((a, b) => {
+        if (a.fits !== b.fits) return a.fits ? -1 : 1;
+        return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
+      });
+    return res.status(200).json({ success: true, data, count: data.length });
+  }
+
   const useGeo = !!(lat && lng);
   if (useGeo) {
     // $near doesn't work with .countDocuments+skip; do a plain find
