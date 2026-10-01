@@ -18,6 +18,11 @@ const { noStore } = require('./middlewares/cacheControl');
 
 const app = express();
 
+// Prod runs behind one Caddy reverse proxy: trust its X-Forwarded-For so
+// req.ip (and every rate limiter below) sees the real client IP instead of
+// counting all users as the proxy's single address.
+app.set('trust proxy', 1);
+
 
 app.get('/', function(req, res) {
     res.set('Content-Type', 'text/html; charset=UTF-8')

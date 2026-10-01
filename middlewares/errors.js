@@ -48,6 +48,9 @@ module.exports = (err, req, res, next) => {
 
     if (env !== 'production') {
         console.log(err);
+    } else if ((error.statusCode || 500) >= 500) {
+        // Server errors must be visible in prod logs (docker compose logs backend).
+        console.error(`[${req.method} ${req.originalUrl}]`, err);
     }
 
     return res.status(error.statusCode || 500).json({
