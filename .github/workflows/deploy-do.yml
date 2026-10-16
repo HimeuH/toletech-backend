@@ -56,13 +56,24 @@ jobs:
             CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
             CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
             CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-            VAPID_SUBJECT=${{ vars.VAPID_SUBJECT || 'mailto:contact@toletech.sn' }}
-            NOTIFY_SMS_FALLBACK_MIN=${{ vars.NOTIFY_SMS_FALLBACK_MIN || '15' }}
+            VAPID_SUBJECT=${{ secrets.VAPID_SUBJECT || 'mailto:contact@toletech.sn' }}
+            NOTIFY_SMS_FALLBACK_MIN=${{ secrets.NOTIFY_SMS_FALLBACK_MIN || '15' }}
             DEFAULT_PAYMENT_PROVIDER=WAVE
             DEFAULT_PAYOUT_PROVIDER=WAVE
             RATE_LIMIT_MAX=200
             COMMISSION_STORAGE_PERCENT=10
             COMMISSION_TRANSPORT_PERCENT=15
+            SMTP_HOST=${{ secrets.SMTP_HOST || 'smtp-relay.brevo.com' }}
+            SMTP_PORT=${{ secrets.SMTP_PORT || '587' }}
+            SMTP_EMAIL=${{ secrets.SMTP_EMAIL }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME || 'ToleTech' }}
+            SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL || 'no-reply@toletech.sn' }}
+            OTP_CHANNEL=${{ secrets.OTP_CHANNEL || 'email' }}
+            SMS_PROVIDER=${{ secrets.SMS_PROVIDER }}
+            SMS_API_KEY=${{ secrets.SMS_API_KEY }}
+            SMS_API_SECRET=${{ secrets.SMS_API_SECRET }}
+            SMS_SENDER_ID=${{ secrets.SMS_SENDER_ID }}
             ENV
 
             echo "${{ secrets.DO_TOKEN }}" | docker login registry.digitalocean.com -u "${{ secrets.DO_TOKEN }}" --password-stdin

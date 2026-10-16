@@ -5,8 +5,7 @@
 const sendToken = async (user, statusCode, req, res) => {
   const token = user.getAccessToken();
 
-  const refreshToken = user.issueRefreshToken(deviceLabelFrom(req));
-  await user.save({ validateBeforeSave: false });
+  const refreshToken = await user.issueRefreshToken(deviceLabelFrom(req));
 
   const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
   const refreshDays = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS, 10) || 30;

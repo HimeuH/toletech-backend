@@ -152,17 +152,18 @@ userSchema.methods.getAccessToken = function () {
 
 // Generates a new opaque refresh token, pushes its hash onto this user
 // (pruning expired ones), and returns the RAW token — only the raw value
-// goes in the httpOnly cookie; only the hash is ever persisted. Caller must
-// still `await this.save()`.
-userSchema.methods.issueRefreshToken = function (deviceLabel) {
+// goes in the httpOnly cookie; only the hash is ever persisted. Writes with
+// atomic $pull/$push rather than doc.save(): save() version-checks the
+// array, so two near-simultaneous logins for one account threw VersionError.
+userSchema.methods.issueRefreshToken = async function (deviceLabel) {
   const raw = crypto.randomBytes(48).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
   const days = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS, 10) || 30;
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-  const now = new Date();
-  this.refreshTokens = (this.refreshTokens || []).filter((t) => t.expiresAt > now);
-  this.refreshTokens.push({ tokenHash, deviceLabel, expiresAt });
+  const User = this.constructor;
+  await User.updateOne({ _id: this._id }, { $pull: { refreshTokens: { expiresAt: { $lte: new Date() } } } });
+  await User.updateOne({ _id: this._id }, { $push: { refreshTokens: { tokenHash, deviceLabel, expiresAt } } });
 
   return raw;
 };
