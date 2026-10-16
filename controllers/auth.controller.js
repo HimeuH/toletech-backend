@@ -410,7 +410,14 @@ exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
   }
 
   const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
-  const user = await User.findOne({ 'refreshTokens.tokenHash': tokenHash }).select('+refreshTokens');
+  // Atomically drop the presented token (refresh tokens are single-use) and
+  // get the pre-update doc back — two concurrent refreshes with the same
+  // cookie can't both succeed, and no versioned save() can conflict.
+  const user = await User.findOneAndUpdate(
+    { 'refreshTokens.tokenHash': tokenHash },
+    { $pull: { refreshTokens: { tokenHash } } },
+    { new: false }
+  ).select('+refreshTokens');
 
   if (!user) {
     res.cookie('refreshToken', null, { expires: new Date(0), httpOnly: true, path: '/api/v1/auth' });
@@ -418,11 +425,8 @@ exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
   }
 
   const entry = user.refreshTokens.find((t) => t.tokenHash === tokenHash);
-  // Always drop the presented token — refresh tokens are single-use.
-  user.refreshTokens = user.refreshTokens.filter((t) => t.tokenHash !== tokenHash);
 
   if (!entry || entry.expiresAt < new Date()) {
-    await user.save({ validateBeforeSave: false });
     res.cookie('refreshToken', null, { expires: new Date(0), httpOnly: true, path: '/api/v1/auth' });
     return next(new ErrorHandler('Session expirée. Veuillez vous reconnecter.', 401, 'AUTH_EXPIRED'));
   }
